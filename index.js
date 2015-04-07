@@ -11,130 +11,99 @@ var through = require('through2'),
     crypto = require('crypto');
 
 var PluginError = gutil.PluginError,
-    AUTH_TOKEN,
+    conf = {
+        token: null,
+        sigs: {},
+        options: {}
+    };
 
-    skipped = 0,
-    fileSigs = {},
-    options = {};
-
-// Consts
 const PLUGIN_NAME = 'gulp-tinypng';
 
-var prefixStream = function(prefixText) {
-    var stream = through();
-    stream.write(prefixText);
-    return stream;
-},
+function TinyPNG(opt) {
+    return TinyPNG.init(opt);
+}
 
-getFileHash = function(file, cb) {
-    var md5 = crypto.createHash('md5');
-    md5.update(file.contents);
-    cb(md5.digest('hex'));
-},
+TinyPNG.init = function(opt) {
+    var self = this, // export self
+        error = false;
 
-compareFileHash = function(file, hash, cb) {
-    getFileHash(file, function(digest) {
-        cb((digest === hash), digest);
-    });
-},
-
-writeFileSigs = function() {
-    fs.writeFile(options.sigFile, JSON.stringify(fileSigs), function(err) {
-        if(err) return new PluginError(err);
-    });
-},
-
-updateFileSigs = function(file, hash) {
-    fileSigs[file.relative] = hash;
-},
-
-populateFileSigs = function(cb) {
-    var data = false;
-    try {
-        data = fs.readFileSync(options.sigFile, 'utf-8');
-    } catch(err) {
-        // meh
-    }
-
-    if(data) fileSigs = JSON.parse(data);
-},
-
-download = function(uri, cb){
-    https.get(uri, function(res) {
-        var body = '';
-
-        res.setEncoding('binary');
-
-        res.on('data', function(chunk) {
-            if(res.statusCode == 200) body += chunk;
-        });
-        res.on('end', function() {
-            cb(new Buffer(body, 'binary'));
-        });
-    });
-},
-
-// Plugin level function (dealing with files)
-gulpTinyPNG = function(opt) {
     if(typeof opt !== 'object') opt = { key: opt };
 
-    if(!opt.key) return new PluginError(PLUGIN_NAME, 'Missing API key!');
-    if(opt.checkSigs && !opt.sigFile) return new PluginError(PLUGIN_NAME, 'sigFile required for checking signatures');
+    if(!opt.key) error = new Error('Missing API key!');
+    if(opt.checkSigs && !opt.sigFile) error = new Error('sigFile required for checking signatures');
 
-    AUTH_TOKEN = new Buffer('api:' + opt.key).toString('base64');
-    opt.key = new Buffer(opt.key); // allocate ahead of time
+    if(!error) {
+        conf.token = new Buffer('api:' + opt.key).toString('base64');
+        opt.key = new Buffer(opt.key); // allocate ahead of time
+    }
 
-    options = opt; // export
+    conf.options = opt; // export opts
 
-    if(opt.checkSigs) populateFileSigs(); // fetch signatures sync
+    if(opt.checkSigs) this.hash.populate(); // fetch signatures sync
 
     // Creating a stream through which each file will pass
-    var stream = through.obj(function (file, enc, callback) {
-
-        var png = function() {
-            tinypng(file, function(data) {
-                file.contents = data;
+    var stream = through.obj(function (file, enc, cb) {
+        var request = function() {
+            self.request(file, function(err, file) {
+                if(err) return cb(new PluginError(PLUGIN_NAME, err));
                 this.push(file);
                 gutil.log('gulp-tinypng: [compressing]', gutil.colors.green('✔ ') + file.relative + gutil.colors.gray(' (done)'));
-                return callback();
+                return cb();
             }.bind(stream));
         };
 
+        if(error) return cb(new PluginError(PLUGIN_NAME, error));
+
         if(file.isNull()) {
             this.push(file); // Do nothing if no contents
-            return callback();
+            return cb();
         }
 
         if(file.isStream()) {
-            return new PluginError(PLUGIN_NAME, 'Streams not supported');
+            return cb(new PluginError(PLUGIN_NAME, 'Streams not supported'));
         }
 
         if(file.isBuffer()) {
-            var currentHash = null;
             if(opt.checkSigs) {
-                compareFileHash(file, fileSigs[file.relative], function(result, hash) {
+                self.hash.compare(file, conf.sigs[file.relative], function(result, hash) {
                     if(result) {
                         file.skipped = true;
                         stream.push(file);
                         gutil.log('gulp-tinypng: [skipping]', gutil.colors.green('✔ ') + file.relative);
-                        return callback();
+                        return cb();
                     }
-                    updateFileSigs(file, hash);
-                    png();
+                    self.hash.update(file, hash);
+                    request();
                 });
             } else {
-                png();
+                request();
             }
         }
     }).on('end', function() {
-        if(opt.checkSigs) writeFileSigs(); // write sigs after complete
+        if(opt.checkSigs) self.hash.write(); // write sigs after complete
     });
 
-  // returning the file stream
-  return stream;
-},
+    // returning the file stream
+    return stream;
+};
 
-tinypng = function(file, cb) {
+/* TinyPNG.request -> A wrapper for request.upload & request.download */
+TinyPNG.request = function(file, cb) {
+    var self = this;
+
+    self.request.upload(file, function(err, url) {
+        if(err || !url) return cb(err || new Error('No URL returned from upload via API'), false);
+        self.request.download(url, function(err, data) {
+            if(err || !data) {
+                return cb(err || new Error('No data returned from download URL'), false);
+            }
+            file.contents = data;
+            cb(false, file);
+        });
+    });
+};
+/* TinyPNG.request.upload -> Uploads the file and returns the compressed image URL */
+TinyPNG.request.upload = function(file, cb) {
     request({
         url: 'https://api.tinypng.com/shrink',
         method: 'POST',
@@ -143,24 +112,81 @@ tinypng = function(file, cb) {
             'Accept': '*/*',
             'Cache-Control':  'no-cache',
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': 'Basic ' + AUTH_TOKEN
+            'Authorization': 'Basic ' + conf.token
         },
         body: file.contents
-    }, function(error, response, body) {
+    }, function(err, res, body) {
         var results, filename;
-        if(!error) {
-            filename = path.basename(file.path);
-            results = JSON.parse(body);
-            if(results.output && results.output.url) {
-                download(results.output.url, function(buffer) {
-                    cb(buffer);
-                });
-            } else {
-                gutil.log('gulp-tinypng: [error] - ', results.message);
-            }
+        if(err) {
+            return cb(err, false);
+        }
+        filename = path.basename(file.path);
+        results = JSON.parse(body);
+        if(results.output && results.output.url) {
+            cb(false, results.output.url);
+        } else {
+            cb(false, false);
         }
     });
 };
+/* TinyPNG.request.download -> Downloads the URL returned from a successful upload */
+TinyPNG.request.download = function(url, cb) {
+    https.get(url, function(res) {
+        var body = '';
 
-// Exporting the plugin main function
-module.exports = gulpTinyPNG;
+        res.setEncoding('binary');
+
+        res.on('data', function(chunk) {
+            if(res.statusCode == 200) body += chunk;
+        });
+
+        res.on('end', function() {
+            cb(false, new Buffer(body, 'binary'));
+        });
+    }).on('error', function(err) {
+        cb(err, false);
+    });
+};
+
+/* TinyPNG.hash -> File signature list helpers */
+TinyPNG.hash = {
+    calc: function(file, cb) {
+        var md5 = crypto.createHash('md5');
+
+        md5.update(file.contents);
+        var hash = md5.digest('hex');
+
+        cb(hash); return hash;
+    },
+    update: function(file, hash) {
+        conf.changed = true;
+        conf.sigs[file.relative] = hash;
+    },
+    compare: function(file, hash, cb) {
+        this.calc(file, function(digest) {
+            cb((digest === hash), digest);
+        });
+    },
+    populate: function() {
+        var data = false;
+
+        try {
+            data = fs.readFileSync(conf.options.sigFile, 'utf-8');
+        } catch(err) {
+            // meh
+        }
+
+        if(data) conf.sigs = JSON.parse(data);
+    },
+    write: function() {
+        if(conf.changed) {
+            try {
+                fs.writeFile(conf.options.sigFile, JSON.stringify(conf.sigs));
+            } catch(err) {
+                // meh
+            }
+        }
+    }
+};
+
+module.exports = TinyPNG;
