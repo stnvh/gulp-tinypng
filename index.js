@@ -1,126 +1,166 @@
 // through2 is a thin wrapper around node transform streams
-var through = require('through2');
-var prettyBytes = require('pretty-bytes');
-var gutil = require('gulp-util');
-var mkdirp = require('mkdirp');
-var rmdir = require( 'rmdir' );
-var request = require('request');
-var path = require('path');
-var inspect = require('util').inspect;
-var fs = require('fs');
+var through = require('through2'),
+    gutil = require('gulp-util'),
+    mkdirp = require('mkdirp'),
+    rmdir = require( 'rmdir' ),
+    request = require('request'),
+    https = require('https'),
+    path = require('path'),
+    inspect = require('util').inspect,
+    fs = require('fs'),
+    crypto = require('crypto');
 
-var PluginError = gutil.PluginError;
-var AUTH_TOKEN;
+var PluginError = gutil.PluginError,
+    AUTH_TOKEN,
+
+    skipped = 0,
+    fileSigs = {},
+    options = {};
 
 // Consts
 const PLUGIN_NAME = 'gulp-tinypng';
-const TEMP_DIR = '.gulp/tinypng/';
 
-function prefixStream(prefixText) {
-  var stream = through();
-  stream.write(prefixText);
-  return stream;
-}
+var prefixStream = function(prefixText) {
+    var stream = through();
+    stream.write(prefixText);
+    return stream;
+},
 
-var cleanTemp = function() {
-  rmdir('.gulp/tinypng', function ( err, dirs, files ){
-    mkdirp('.gulp/tinypng', function (err) {
-      if (err){ console.error('Error creating temp folder'); }
+getFileHash = function(file, cb) {
+    var md5 = crypto.createHash('md5');
+    md5.update(file.contents);
+    cb(md5.digest('hex'));
+},
+
+compareFileHash = function(file, hash, cb) {
+    getFileHash(file, function(digest) {
+        cb((digest === hash), digest);
     });
-  });
-};
+},
 
-var download = function(uri, filename, complete){
-  request.head(uri, function(err, res, body){
-    request({url: uri, strictSSL: false})
-      .pipe(fs.createWriteStream(TEMP_DIR + filename))
-      .on('close', function() {
-        complete();
-      });
-  });
-};
+writeFileSigs = function() {
+    fs.writeFile(options.sigFile, JSON.stringify(fileSigs), function(err) {
+        if(err) return new PluginError(err);
+    });
+},
 
-var readTemp = function(filename) {
-  fs.readFile(filename, function(err, data){
-    if (err) {
-      return cb(new gutil.PluginError('gulp-tinypng', err));
+updateFileSigs = function(file, hash) {
+    fileSigs[file.relative] = hash;
+},
+
+populateFileSigs = function(cb) {
+    var data = false;
+    try {
+        data = fs.readFileSync(options.sigFile, 'utf-8');
+    } catch(err) {
+        // meh
     }
-    file.contents = data;
-  });
-};
+
+    if(data) fileSigs = JSON.parse(data);
+},
+
+download = function(uri, cb){
+    https.get(uri, function(res) {
+        var body = '';
+
+        res.setEncoding('binary');
+
+        res.on('data', function(chunk) {
+            if(res.statusCode == 200) body += chunk;
+        });
+        res.on('end', function() {
+            cb(new Buffer(body, 'binary'));
+        });
+    });
+},
 
 // Plugin level function (dealing with files)
-function gulpPrefixer(prefixText) {
-  AUTH_TOKEN = new Buffer('api:' + prefixText).toString('base64')
-  if (!prefixText) {
-    throw PluginError(PLUGIN_NAME, "Missing prefix text!");
-  }
-  prefixText = new Buffer(prefixText); // allocate ahead of time
-  cleanTemp();
-  // Creating a stream through which each file will pass
-  var stream = through.obj(function (file, enc, callback) {
-    if (file.isNull()) {
-      this.push(file); // Do nothing if no contents
-      return callback();
-    }
+gulpTinyPNG = function(opt) {
+    if(typeof opt !== 'object') opt = { key: opt };
 
-    if (file.isBuffer()) {
-      var prevLength = file.contents.length;
-      tinypng(file, function(data) {
-        file.contents = data;
-        this.push(file);
-        gutil.log('gulp-tingpng: ', gutil.colors.green('✔ ') + file.relative + ' (saved ' + 
-                  prettyBytes(prevLength - data.length) + ' - ' + ((1 - data.length / prevLength) * 100).toFixed(0) + '%)');
-        return callback();
-      }.bind(this));
-    }
+    if(!opt.key) return new PluginError(PLUGIN_NAME, 'Missing API key!');
+    if(opt.checkSigs && !opt.sigFile) return new PluginError(PLUGIN_NAME, 'sigFile required for checking signatures');
 
-    if (file.isStream()) {
-      throw PluginError(PLUGIN_NAME, "Stream is not supported");
-      return callback();
-    }
-  });
+    AUTH_TOKEN = new Buffer('api:' + opt.key).toString('base64');
+    opt.key = new Buffer(opt.key); // allocate ahead of time
+
+    options = opt; // export
+
+    if(opt.checkSigs) populateFileSigs(); // fetch signatures sync
+
+    // Creating a stream through which each file will pass
+    var stream = through.obj(function (file, enc, callback) {
+
+        var png = function() {
+            tinypng(file, function(data) {
+                file.contents = data;
+                this.push(file);
+                gutil.log('gulp-tinypng: [compressing]', gutil.colors.green('✔ ') + file.relative + gutil.colors.gray(' (done)'));
+                return callback();
+            }.bind(stream));
+        };
+
+        if(file.isNull()) {
+            this.push(file); // Do nothing if no contents
+            return callback();
+        }
+
+        if(file.isStream()) {
+            return new PluginError(PLUGIN_NAME, 'Streams not supported');
+        }
+
+        if(file.isBuffer()) {
+            var currentHash = null;
+            if(opt.checkSigs) {
+                compareFileHash(file, fileSigs[file.relative], function(result, hash) {
+                    if(result) {
+                        file.skipped = true;
+                        stream.push(file);
+                        gutil.log('gulp-tinypng: [skipping]', gutil.colors.green('✔ ') + file.relative);
+                        return callback();
+                    }
+                    updateFileSigs(file, hash);
+                    png();
+                });
+            } else {
+                png();
+            }
+        }
+    }).on('end', function() {
+        if(opt.checkSigs) writeFileSigs(); // write sigs after complete
+    });
 
   // returning the file stream
   return stream;
-};
+},
 
-
-
-function tinypng(file, cb) {
-  request({
-    url: 'https://api.tinypng.com/shrink',
-    method: 'POST',
-    strictSSL: false,
-    headers: {
-      'Accept': '*/*',
-      'Cache-Control':  'no-cache',
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + AUTH_TOKEN
-    },
-    body: file.contents
-  }, function(error, response, body) {
-    var results, filename;
-    if(!error) {
-      filename = path.basename(file.path);
-      results = JSON.parse(body);
-      // size
-      // ratio
-      // url
-      if(results.output && results.output.url) {
-        download(results.output.url, filename, function() {
-          fs.readFile(TEMP_DIR + filename, function(err, data){
-            if (err) {
-              gutil.log('[error] :  gulp-tinypng - ', err);
+tinypng = function(file, cb) {
+    request({
+        url: 'https://api.tinypng.com/shrink',
+        method: 'POST',
+        strictSSL: false,
+        headers: {
+            'Accept': '*/*',
+            'Cache-Control':  'no-cache',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + AUTH_TOKEN
+        },
+        body: file.contents
+    }, function(error, response, body) {
+        var results, filename;
+        if(!error) {
+            filename = path.basename(file.path);
+            results = JSON.parse(body);
+            if(results.output && results.output.url) {
+                download(results.output.url, function(buffer) {
+                    cb(buffer);
+                });
+            } else {
+                gutil.log('gulp-tinypng: [error] - ', results.message);
             }
-            cb(data);
-          });
-        });
-      } else {
-        gutil.log('[error] : gulp-tinypng - ', results.message);
-      }
-    }
-  });
+        }
+    });
 };
+
 // Exporting the plugin main function
-module.exports = gulpPrefixer;
+module.exports = gulpTinyPNG;

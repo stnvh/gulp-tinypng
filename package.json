@@ -1,9 +1,9 @@
 {
   "name": "gulp-tinypng",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "gulp plugin to compress png images using tinypng api",
   "main": "index.js",
-  "repository": "creativeaura/gulp-tinypng",
+  "repository": "stnvh/gulp-tinypng",
   "scripts": {
     "test": "mocha"
   },
@@ -15,6 +15,11 @@
     "email": "gaurav@jassal.me",
     "url": "http://gaurav.jassal.me"
   },
+  "contributors": [{
+      "name": "Stan Hutcheon",
+      "email": "stanutcheon@me.com",
+      "url": "https://github.com/stnvh"
+  }],
   "keywords": [
     "gulpplugin",
     "tinypng",
