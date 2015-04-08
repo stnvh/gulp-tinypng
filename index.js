@@ -1,12 +1,9 @@
 // through2 is a thin wrapper around node transform streams
 var through = require('through2'),
     gutil = require('gulp-util'),
-    mkdirp = require('mkdirp'),
-    rmdir = require( 'rmdir' ),
     request = require('request'),
     https = require('https'),
     path = require('path'),
-    inspect = require('util').inspect,
     fs = require('fs'),
     crypto = require('crypto');
 
@@ -173,7 +170,7 @@ TinyPNG.hash = {
         try {
             data = fs.readFileSync(conf.options.sigFile, 'utf-8');
         } catch(err) {
-            // meh
+            return err;
         }
 
         if(data) conf.sigs = JSON.parse(data);

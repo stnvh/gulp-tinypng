@@ -38,14 +38,9 @@
   "license": "MIT",
   "dependencies": {
     "gulp-util": "~2.2.14",
-    "gulp": "~3.3.4",
-    "event-stream": "~3.1.0",
     "request": "~2.31.0",
     "vinyl": "~0.2.3",
-    "mkdirp": "~0.3.5",
-    "rmdir": "~1.0.4",
-    "through2": "~0.4.1",
-    "pretty-bytes": "~0.1.2"
+    "through2": "~0.4.1"
   },
   "devDependencies": {
     "mocha": "*"
