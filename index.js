@@ -22,33 +22,32 @@ function TinyPNG(opt) {
 
 TinyPNG.init = function(opt) {
     var self = this, // export self
-        error = false;
+        errorSent = false;
 
     if(typeof opt !== 'object') opt = { key: opt };
 
-    if(!opt.key) error = new Error('Missing API key!');
-    if(opt.checkSigs && !opt.sigFile) error = new Error('sigFile required for checking signatures');
+    if(!opt.key) throw new Error('Missing API key!');
+    if(opt.checkSigs && !opt.sigFile) throw new Error('sigFile required for checking signatures');
 
-    if(!error) {
-        conf.token = new Buffer('api:' + opt.key).toString('base64');
-        opt.key = new Buffer(opt.key); // allocate ahead of time
-    }
+    conf.token = new Buffer('api:' + opt.key).toString('base64');
+    opt.key = new Buffer(opt.key); // allocate ahead of time
 
     conf.options = opt; // export opts
 
     if(opt.checkSigs) this.hash.populate(); // fetch signatures sync
 
-    var stream = through.obj(function(file, enc, cb) {
+    return through.obj(function(file, enc, cb) {
         var request = function() {
             self.request(file, function(err, file) {
-                if(err) return cb(new PluginError(PLUGIN_NAME, err));
+                if(err) {
+                    this.emit('error', new PluginError(PLUGIN_NAME, err));
+                    return cb();
+                }
                 this.push(file);
                 gutil.log('gulp-tinypng: [compressing]', gutil.colors.green('✔ ') + file.relative + gutil.colors.gray(' (done)'));
                 return cb();
-            }.bind(stream));
-        };
-
-        if(error) return cb(new PluginError(PLUGIN_NAME, error));
+            }.bind(this)); // lol @ scoping
+        }.bind(this);
 
         if(file.isNull()) {
             this.push(file);
@@ -56,7 +55,8 @@ TinyPNG.init = function(opt) {
         }
 
         if(file.isStream()) {
-            return cb(new PluginError(PLUGIN_NAME, 'Streams not supported'));
+            this.emit('error', new PluginError(PLUGIN_NAME, 'Streams not supported'));
+            return cb();
         }
 
         if(file.isBuffer()) {
@@ -64,23 +64,26 @@ TinyPNG.init = function(opt) {
                 self.hash.compare(file, conf.sigs[file.relative], function(result, hash) {
                     if(result) {
                         file.skipped = true;
-                        stream.push(file);
+                        this.push(file);
                         gutil.log('gulp-tinypng: [skipping]', gutil.colors.green('✔ ') + file.relative);
                         return cb();
                     }
                     self.hash.update(file, hash);
                     request();
-                });
+                }.bind(this));
             } else {
                 request();
             }
         }
-    }).on('end', function() {
-        if(opt.checkSigs) self.hash.write(); // write sigs after complete
+    })
+    .on('error', function() {
+        errorSent = true; // surely a method in the stream to handle this?
+    })
+    .on('end', function() {
+        if(!errorSent) {
+            if(opt.checkSigs) self.hash.write(); // write sigs after complete
+        }
     });
-
-    // returning the file stream
-    return stream;
 };
 
 /* TinyPNG.request -> A wrapper for request.upload & request.download */
@@ -88,11 +91,10 @@ TinyPNG.request = function(file, cb) {
     var self = this.request; // self scope
 
     self.upload(file, function(err, url) {
-        if(err || !url) return cb(err || new Error('No URL returned from upload via API'), false);
+        if(err) return cb(err, false);
         self.download(url, function(err, data) {
-            if(err || !data) {
-                return cb(err || new Error('No data returned from download URL'), false);
-            }
+            if(err) return cb(err, false);
+
             file.contents = data;
             cb(false, file);
         });
@@ -112,23 +114,23 @@ TinyPNG.request.upload = function(file, cb) {
         },
         body: file.contents
     }, function(err, res, body) {
-        var results, filename;
+        var data = (body && !err ? JSON.parse(body) : false),
+            url = data.output ? data.output.url : false;
+
         if(err) {
-            return cb(err, false);
-        }
-        filename = path.basename(file.path);
-        results = JSON.parse(body);
-        if(results.output && results.output.url) {
-            cb(false, results.output.url);
+            err = new Error(path.basename(file.relative) + ': Initial upload request failed, check your internet connection?');
         } else {
-            cb(false, false);
+            if(!url) err = new Error('No URL returned from API');
         }
+
+        cb(err, url);
     });
 };
 /* TinyPNG.request.download -> Downloads the URL returned from a successful upload */
 TinyPNG.request.download = function(url, cb) {
     https.get(url, function(res) {
-        var body = '';
+        var body = '',
+            err = false;
 
         res.setEncoding('binary');
 
@@ -137,10 +139,15 @@ TinyPNG.request.download = function(url, cb) {
         });
 
         res.on('end', function() {
-            cb(false, new Buffer(body, 'binary'));
+            if(!body) {
+                err = new Error('No URL returned from API');
+            } else {
+                body = new Buffer(body, 'binary');
+            }
+            cb(err, body);
         });
     }).on('error', function(err) {
-        cb(err, false);
+        cb(new Error('Download failed for ' + url + ' with error: ' + err.message), false);
     });
 };
 
@@ -152,7 +159,7 @@ TinyPNG.hash = {
         md5.update(file.contents);
         var hash = md5.digest('hex');
 
-        cb(hash); return hash;
+        return cb(hash);
     },
     update: function(file, hash) {
         conf.changed = true;
