@@ -1,33 +1,38 @@
-# gulp-tinypng
+# gulp-tinypng-compress
 
-> Minify PNG  using [tinypng](https://tinypng.com/)
+> [TinyPNG](https://tinypng.com) API wrapper for compressing PNG & JPG images
+
+An actively maintained & developed fork of [gulp-tinypng](https://github.com/creativeaura/gulp-tinypng).
+
+*Main differences from gulp-tinypng:*
+- File signature checking (to minimise unnecessary API calls, optional)
+- No temporary files/folders are created on compressed image download - fed straight from tinypng to the pipe
+- Maintained with the intention of standardising the tinypng featureset across gulp & grunt (and others too!)
 
 ## Install
 
-Install with [npm](https://npmjs.org/package/gulp-tinypng)
+Install with [npm](https://npmjs.org/package/gulp-tinypng-compress)
 
 ```
-npm install --save-dev gulp-tinypng
+npm install --save-dev gulp-tinypng-compress
 ```
-
 
 ## Example
 
 ```js
 var gulp = require('gulp');
-var tinypng = require('gulp-tinypng');
+var tinypng = require('gulp-tinypng-compress');
 
 gulp.task('tinypng', function () {
-	gulp.src('src/**/*.png')
+	gulp.src('images/src/**/*.{png,jpg,jpeg}')
 		.pipe(tinypng({
 			key: 'API_KEY',
 			checkSigs: true,
 			sigFile: 'images/.tinypng-sigs'
 		}))
-		.pipe(gulp.dest('compressed_images'));
+		.pipe(gulp.dest('images'));
 });
 ```
-
 
 ## API
 
@@ -63,4 +68,8 @@ The file location to write the source image md5 signatures to when using the opt
 
 ## License
 
-MIT © [Gaurav Jassal](http://gaurav.jassal.me)
+MIT © Stan Hutcheon - Bigfork Ltd.
+
+**Original license:**
+
+>MIT © [Gaurav Jassal](http://gaurav.jassal.me)

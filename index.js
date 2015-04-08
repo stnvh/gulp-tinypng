@@ -14,7 +14,7 @@ var PluginError = gutil.PluginError,
         options: {}
     };
 
-const PLUGIN_NAME = 'gulp-tinypng';
+const PLUGIN_NAME = 'gulp-tinypng-compress';
 
 function TinyPNG(opt) {
     return TinyPNG.init(opt);
@@ -38,8 +38,7 @@ TinyPNG.init = function(opt) {
 
     if(opt.checkSigs) this.hash.populate(); // fetch signatures sync
 
-    // Creating a stream through which each file will pass
-    var stream = through.obj(function (file, enc, cb) {
+    var stream = through.obj(function(file, enc, cb) {
         var request = function() {
             self.request(file, function(err, file) {
                 if(err) return cb(new PluginError(PLUGIN_NAME, err));
@@ -52,7 +51,7 @@ TinyPNG.init = function(opt) {
         if(error) return cb(new PluginError(PLUGIN_NAME, error));
 
         if(file.isNull()) {
-            this.push(file); // Do nothing if no contents
+            this.push(file);
             return cb();
         }
 
@@ -86,11 +85,11 @@ TinyPNG.init = function(opt) {
 
 /* TinyPNG.request -> A wrapper for request.upload & request.download */
 TinyPNG.request = function(file, cb) {
-    var self = this;
+    var self = this.request; // self scope
 
-    self.request.upload(file, function(err, url) {
+    self.upload(file, function(err, url) {
         if(err || !url) return cb(err || new Error('No URL returned from upload via API'), false);
-        self.request.download(url, function(err, data) {
+        self.download(url, function(err, data) {
             if(err || !data) {
                 return cb(err || new Error('No data returned from download URL'), false);
             }
@@ -145,7 +144,7 @@ TinyPNG.request.download = function(url, cb) {
     });
 };
 
-/* TinyPNG.hash -> File signature list helpers */
+/* TinyPNG.hash -> File signature helpers */
 TinyPNG.hash = {
     calc: function(file, cb) {
         var md5 = crypto.createHash('md5');
