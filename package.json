@@ -11,14 +11,14 @@
     "index.js"
   ],
   "author": {
-    "name": "Gaurav Jassal",
-    "email": "gaurav@jassal.me",
-    "url": "http://gaurav.jassal.me"
-  },
-  "maintainers": [{
       "name": "Stan Hutcheon",
       "email": "stanutcheon@me.com",
       "url": "https://github.com/stnvh"
+  },
+  "contributors": [{
+    "name": "Gaurav Jassal",
+    "email": "gaurav@jassal.me",
+    "url": "http://gaurav.jassal.me"
   }],
   "keywords": [
     "gulpplugin",
