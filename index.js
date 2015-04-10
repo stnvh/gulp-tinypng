@@ -1,6 +1,7 @@
 // through2 is a thin wrapper around node transform streams
 var through = require('through2'),
     gutil = require('gulp-util'),
+    chalk = gutil.colors,
     request = require('request'),
     https = require('https'),
     path = require('path'),
@@ -44,7 +45,7 @@ TinyPNG.init = function(opt) {
                     return cb();
                 }
                 this.push(file);
-                gutil.log('gulp-tinypng: [compressing]', gutil.colors.green('✔ ') + file.relative + gutil.colors.gray(' (done)'));
+                gutil.log('gulp-tinypng: [compressing]', chalk.green('✔ ') + file.relative + chalk.gray(' (done)'));
                 return cb();
             }.bind(this)); // lol @ scoping
         }.bind(this);
@@ -65,7 +66,7 @@ TinyPNG.init = function(opt) {
                     if(result) {
                         file.skipped = true;
                         this.push(file);
-                        gutil.log('gulp-tinypng: [skipping]', gutil.colors.green('✔ ') + file.relative);
+                        gutil.log('gulp-tinypng: [skipping]', chalk.green('✔ ') + file.relative);
                         return cb();
                     }
                     self.hash.update(file, hash);
@@ -91,9 +92,9 @@ TinyPNG.request = function(file, cb) {
     var self = this.request; // self scope
 
     self.upload(file, function(err, url) {
-        if(err) return cb(err, false);
+        if(err) return cb(err, file);
         self.download(url, function(err, data) {
-            if(err) return cb(err, false);
+            if(err) return cb(err, file);
 
             file.contents = data;
             cb(false, file);
@@ -118,7 +119,7 @@ TinyPNG.request.upload = function(file, cb) {
             url = data.output ? data.output.url : false;
 
         if(err) {
-            err = new Error(path.basename(file.relative) + ': Initial upload request failed, check your internet connection?');
+            err = new Error('Initial upload request failed with message: "' + err.message + '"');
         } else {
             if(!url) err = new Error('No URL returned from API');
         }
@@ -140,7 +141,7 @@ TinyPNG.request.download = function(url, cb) {
 
         res.on('end', function() {
             if(!body) {
-                err = new Error('No URL returned from API');
+                err = new Error('No image returned from URL');
             } else {
                 body = new Buffer(body, 'binary');
             }
