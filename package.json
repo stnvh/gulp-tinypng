@@ -37,10 +37,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "gulp-util": "~2.2.14",
-    "request": "~2.31.0",
-    "vinyl": "~0.2.3",
-    "through2": "~0.4.1"
+    "gulp-util": "~3.0.0",
+    "request": "~2.55.0",
+    "through2": "~0.6.0"
   },
   "devDependencies": {
     "mocha": "*"

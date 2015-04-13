@@ -3,7 +3,6 @@ var through = require('through2'),
     gutil = require('gulp-util'),
     chalk = gutil.colors,
     request = require('request'),
-    https = require('https'),
     path = require('path'),
     fs = require('fs'),
     crypto = require('crypto');
@@ -38,14 +37,15 @@ TinyPNG.init = function(opt) {
     if(opt.checkSigs) this.hash.populate(); // fetch signatures sync
 
     return through.obj(function(file, enc, cb) {
-        var request = function() {
+        var request = function(success) {
             self.request(file, function(err, file) {
                 if(err) {
                     this.emit('error', new PluginError(PLUGIN_NAME, err));
-                    return cb();
+                } else {
+                    this.push(file);
+                    gutil.log('gulp-tinypng: [compressing]', chalk.green('✔ ') + file.relative + chalk.gray(' (done)'));
                 }
-                this.push(file);
-                gutil.log('gulp-tinypng: [compressing]', chalk.green('✔ ') + file.relative + chalk.gray(' (done)'));
+                success && success(!err);
                 return cb();
             }.bind(this)); // lol @ scoping
         }.bind(this);
@@ -69,8 +69,9 @@ TinyPNG.init = function(opt) {
                         gutil.log('gulp-tinypng: [skipping]', chalk.green('✔ ') + file.relative);
                         return cb();
                     }
-                    self.hash.update(file, hash);
-                    request();
+                    request(function(done) {
+                        if(done) self.hash.update(file, hash);
+                    });
                 }.bind(this));
             } else {
                 request();
@@ -81,9 +82,7 @@ TinyPNG.init = function(opt) {
         errorSent = true; // surely a method in the stream to handle this?
     })
     .on('end', function() {
-        if(!errorSent) {
-            if(opt.checkSigs) self.hash.write(); // write sigs after complete
-        }
+        if(!errorSent && opt.checkSigs) self.hash.write(); // write sigs after complete
     });
 };
 
@@ -103,25 +102,24 @@ TinyPNG.request = function(file, cb) {
 };
 /* TinyPNG.request.upload -> Uploads the file and returns the compressed image URL */
 TinyPNG.request.upload = function(file, cb) {
-    request({
+    request.post({
         url: 'https://api.tinypng.com/shrink',
-        method: 'POST',
-        strictSSL: false,
         headers: {
-            'Accept': '*/*',
-            'Cache-Control':  'no-cache',
             'Content-Type': 'application/x-www-form-urlencoded',
             'Authorization': 'Basic ' + conf.token
         },
         body: file.contents
     }, function(err, res, body) {
-        var data = (body && !err ? JSON.parse(body) : false),
-            url = data.output ? data.output.url : false;
+        var url = false;
 
         if(err) {
-            err = new Error('Initial upload request failed with message: "' + err.message + '"');
+            err = new Error('Upload failed for ' + file.relative + ' with error: ' + err.message);
         } else {
-            if(!url) err = new Error('No URL returned from API');
+            try {
+                url = JSON.parse(body).output.url;
+            } catch(e) {
+                err = new Error('Upload response JSON parse failed, invalid data returned from API. Failed with message: ' + e.message);
+            }
         }
 
         cb(err, url);
@@ -129,26 +127,12 @@ TinyPNG.request.upload = function(file, cb) {
 };
 /* TinyPNG.request.download -> Downloads the URL returned from a successful upload */
 TinyPNG.request.download = function(url, cb) {
-    https.get(url, function(res) {
-        var body = '',
-            err = false;
-
-        res.setEncoding('binary');
-
-        res.on('data', function(chunk) {
-            if(res.statusCode == 200) body += chunk;
-        });
-
-        res.on('end', function() {
-            if(!body) {
-                err = new Error('No image returned from URL');
-            } else {
-                body = new Buffer(body, 'binary');
-            }
-            cb(err, body);
-        });
-    }).on('error', function(err) {
-        cb(new Error('Download failed for ' + url + ' with error: ' + err.message), false);
+    request.get({
+        url: url,
+        encoding: null
+    }, function(err, res, body) {
+        err = err ? new Error('Download failed for ' + url + ' with error: ' + err.message) : false;
+        cb(err, body);
     });
 };
 

@@ -11,7 +11,7 @@ An actively maintained & developed fork of [gulp-tinypng](https://github.com/cre
 
 ## Install
 
-Install with [npm](https://npmjs.org/package/gulp-tinypng-compress)
+Install with [npm](https://npmjs.org/package/gulp-tinypng-compress) - In your project folder, run:
 
 ```
 npm install --save-dev gulp-tinypng-compress
