@@ -1,3 +1,6 @@
+[![Version](https://img.shields.io/npm/v/gulp-tinypng-compress.svg)](npm)
+[![Downloaded](https://img.shields.io/npm/dm/gulp-tinypng-compress.svg)](npm)
+
 # gulp-tinypng-compress
 
 > [TinyPNG](https://tinypng.com) API wrapper for compressing PNG & JPG images
@@ -73,3 +76,5 @@ MIT © Stan Hutcheon - Bigfork Ltd.
 **Original license:**
 
 >MIT © [Gaurav Jassal](http://gaurav.jassal.me)
+
+[npm]: https://www.npmjs.com/package/gulp-tinypng-compress
