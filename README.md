@@ -1,5 +1,5 @@
-[![Version](https://img.shields.io/npm/v/gulp-tinypng-compress.svg)](npm)
-[![Downloaded](https://img.shields.io/npm/dm/gulp-tinypng-compress.svg)](npm)
+[![Version](https://img.shields.io/npm/v/gulp-tinypng-compress.svg)][npm]
+[![Downloaded](https://img.shields.io/npm/dm/gulp-tinypng-compress.svg)][npm]
 
 # gulp-tinypng-compress
 
