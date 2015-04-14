@@ -69,6 +69,27 @@ Default: `''`
 
 The file location to write the source image md5 signatures to when using the options.checkSigs option
 
+#### options.force
+Type: `Boolean` / `String`
+Default: `false`
+
+Force compress images regardless of signature. Value can either be `true` to force all images, or a glob pattern string to match against the filename(s).
+
+Can also be performed from the **command line**:
+```bash
+$ gulp png --force 'icon-*.png'
+```
+
+This feature was added as it's impossible to know where the files are being written to at this point in the stream, unless the directory is directly passed into the config (pretty ugly). So the option was added to force certain (or all) files to be compressed when required.
+
+#### options.ignore
+Type: `Boolean` / `String`
+Default: `false`
+
+Same as `options.force` except ignores files if the glob is matched
+
+`--ignore` flag on the command line
+
 ## License
 
 MIT © Stan Hutcheon - Bigfork Ltd.

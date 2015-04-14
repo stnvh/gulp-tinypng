@@ -5,7 +5,8 @@ var through = require('through2'),
     request = require('request'),
     path = require('path'),
     fs = require('fs'),
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    minimatch = require('minimatch');
 
 var PluginError = gutil.PluginError,
     conf = {
@@ -32,11 +33,16 @@ TinyPNG.init = function(opt) {
     conf.token = new Buffer('api:' + opt.key).toString('base64');
     opt.key = new Buffer(opt.key); // allocate ahead of time
 
+    if(!opt.force) opt.force = gutil.env.force || false; // force match glob
+    if(!opt.ignore) opt.ignore = gutil.env.ignore || false; // ignore match glob
+
     conf.options = opt; // export opts
 
     if(opt.checkSigs) this.hash.populate(); // fetch signatures sync
 
     return through.obj(function(file, enc, cb) {
+        if(self.glob(file, opt.ignore)) return cb();
+
         var request = function(success) {
             self.request(file, function(err, file) {
                 if(err) {
@@ -61,7 +67,7 @@ TinyPNG.init = function(opt) {
         }
 
         if(file.isBuffer()) {
-            if(opt.checkSigs) {
+            if(opt.checkSigs && !self.glob(file, opt.force)) {
                 self.hash.compare(file, conf.sigs[file.relative], function(result, hash) {
                     if(result) {
                         gutil.log('gulp-tinypng: [skipping]', chalk.green('✔ ') + file.relative);
@@ -132,6 +138,21 @@ TinyPNG.request.download = function(url, cb) {
         err = err ? new Error('Download failed for ' + url + ' with error: ' + err.message) : false;
         cb(err, body);
     });
+};
+
+/* TinyPNG.glob -> Performs match tests on a file name */
+TinyPNG.glob = function(file, glob, opt) {
+    if(!opt) opt = {};
+
+    if(typeof glob === 'boolean') return glob;
+
+    var result = minimatch(file.path, glob, opt);
+
+    if(!result && !opt.matchBase) {
+        opt.matchBase = true;
+        return this.glob(file, glob, opt);
+    }
+    return result;
 };
 
 /* TinyPNG.hash -> File signature helpers */
