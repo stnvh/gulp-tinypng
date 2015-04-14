@@ -64,8 +64,6 @@ TinyPNG.init = function(opt) {
             if(opt.checkSigs) {
                 self.hash.compare(file, conf.sigs[file.relative], function(result, hash) {
                     if(result) {
-                        file.skipped = true;
-                        this.push(file);
                         gutil.log('gulp-tinypng: [skipping]', chalk.green('✔ ') + file.relative);
                         return cb();
                     }
