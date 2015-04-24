@@ -7,9 +7,6 @@
   "scripts": {
     "test": "mocha"
   },
-  "files": [
-    "index.js"
-  ],
   "author": {
       "name": "Stan Hutcheon",
       "email": "stanutcheon@me.com",
