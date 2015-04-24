@@ -69,6 +69,12 @@ Default: `''`
 
 The file location to write the source image md5 signatures to when using the options.checkSigs option
 
+#### options.log
+Type: `Boolean`
+Default: `false`
+
+Set to true to log errors & messages to the console. Errors are dispatched via events anyway, so plugins like `gulp-plumber` can handle these for you.
+
 #### options.force
 Type: `Boolean` / `String`
 Default: `false`
