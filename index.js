@@ -16,7 +16,6 @@ var PLUGIN_NAME = 'gulp-tinypng-compress',
  * @todo Move into own library
  */
 function TinyPNG(opt) {
-    'use strict';
 
     var self = this;
 
@@ -106,6 +105,7 @@ function TinyPNG(opt) {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Authorization': 'Basic ' + self.conf.token
                 },
+                strictSSL: false,
                 body: file.contents
             }, function(err, res, body) {
                 var data,
@@ -208,7 +208,7 @@ function TinyPNG(opt) {
                 try {
                     data = fs.readFileSync(this.sigFile, 'utf-8');
                 } catch(err) {
-                    return err;
+                    // meh
                 }
 
                 if(data) this.sigs = JSON.parse(data);
