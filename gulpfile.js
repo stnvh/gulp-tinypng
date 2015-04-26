@@ -1,15 +1,21 @@
-var gulp = require('gulp');
-var gutil = require('gulp-util');
-var tinypng = require('./index');
+process.env.NODE_ENV = 'normal';
 
+var gulp = require('gulp'),
+    tinypng = require('./index'),
+    cwd = __dirname,
+    sigs = process.env.TINYPNG_SIGS ? true : false;
 
-const TINYPNG_API = "8FiQFj9oWwEyTBHMMwxjvuYNx05Fphk2";
-
-gulp.task('tinypng', function(){
-  var stream;
-
-  stream = gulp.src('original_images/**/*.png')
-            .pipe(tinypng(TINYPNG_API))
-            .pipe(gulp.dest('compressed_images'));
-  return stream;
+gulp.task('tinypng', function() {
+    gulp.src(cwd + '/test/assets/image.png')
+        .pipe(tinypng({
+            key: 'NAoMjq0UjjWuLwVAAn9iVtGepjD38pDm',
+            log: true,
+            checkSigs: sigs ? true : false,
+            sigFile: sigs ? '.sigs' : false
+        }).on('error', function(err) {
+            console.error(err.message);
+        }))
+        .pipe(gulp.dest(cwd + '/test/assets/tmp'));
 });
+
+process.env.NODE_ENV = 'test';

@@ -8,15 +8,17 @@
     "test": "mocha"
   },
   "author": {
-      "name": "Stan Hutcheon",
-      "email": "stanutcheon@me.com",
-      "url": "https://github.com/stnvh"
+    "name": "Stan Hutcheon",
+    "email": "stanutcheon@me.com",
+    "url": "https://github.com/stnvh"
   },
-  "contributors": [{
-    "name": "Gaurav Jassal",
-    "email": "gaurav@jassal.me",
-    "url": "http://gaurav.jassal.me"
-  }],
+  "contributors": [
+    {
+      "name": "Gaurav Jassal",
+      "email": "gaurav@jassal.me",
+      "url": "http://gaurav.jassal.me"
+    }
+  ],
   "keywords": [
     "gulpplugin",
     "tinypng",
@@ -40,6 +42,8 @@
     "minimatch": "^2.0.0"
   },
   "devDependencies": {
-    "mocha": "*"
+    "chai": "^2.3.0",
+    "gulp": "^3.8.11",
+    "mocha": "^2.0.0"
   }
 }

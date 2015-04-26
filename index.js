@@ -1,4 +1,5 @@
-var through = require('through2'),
+var test = process.env.NODE_ENV == 'test',
+    through = require('through2'),
     gutil = require('gulp-util'),
     chalk = gutil.colors,
     request = require('request'),
@@ -171,7 +172,7 @@ function TinyPNG(opt) {
             });
         };
 
-        return this.init(file, cb);
+        return test ? this : this.init(file, cb);
     };
 
     this.hasher = function(sigFile) {
@@ -220,7 +221,7 @@ function TinyPNG(opt) {
         this.write = function() {
             if(this.changed) {
                 try {
-                    fs.writeFile(this.sigFile, JSON.stringify(this.sigs));
+                    fs.writeFileSync(this.sigFile, JSON.stringify(this.sigs));
                 } catch(err) {
                     // meh
                 }
@@ -250,7 +251,7 @@ function TinyPNG(opt) {
         return result;
     };
 
-    return this.init(opt);
+    return test ? this : this.init(opt);
 }
 
 module.exports = TinyPNG;
