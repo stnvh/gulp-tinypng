@@ -8,7 +8,7 @@ var fs = require('fs'),
 
     TinyPNG = require('../index');
 
-var key = 'NAoMjq0UjjWuLwVAAn9iVtGepjD38pDm',
+var key = 'GbMDuFMrMy6mFJ6UILDKu5dAw6oeqllN',
 	cwd = __dirname,
 	TestFile = function(small) {
 		var file = cwd + '/assets/image' + (small ? '_small' : '') + '.png';
@@ -20,17 +20,20 @@ var key = 'NAoMjq0UjjWuLwVAAn9iVtGepjD38pDm',
 	};
 
 describe('tinypng', function() {
-
-	it('has valid API key', function() {
-		var inst = new TinyPNG();
+	it('test has valid API key', function(done) {
+		var inst = new TinyPNG(),
+			test = new TestFile();
 
 		inst.init({
 			key: key
 		});
 
-		inst.request().upload(new TestFile(), function(err, file) {
-			expect(err).to.equal(null);
-			if(err) throw err;
+		test.contents = new Buffer('query', 'utf-8');
+
+		inst.request(test).upload(test, function(err, file) {
+			expect(err.message).to.match(/^BadSignature/);
+
+			done();
 		});
 
 	});
@@ -110,7 +113,7 @@ describe('tinypng', function() {
 			it('returns compressed image', function(done) {
 				this.timeout(20000);
 
-				inst.request().init(image, function(err, file) {
+				inst.request(image).init(image, function(err, file) {
 					expect(err).to.equal(false);
 					expect(file.contents).to.have.length.lessThan(len);
 
@@ -128,7 +131,7 @@ describe('tinypng', function() {
 		});
 
 		it('set signature file location', function() {
-			expect(inst.hasher('test/location').sigFile).to.equal('test/location');
+			expect(inst.hasher('test/location')).to.have.property('sigFile', 'test/location');
 		});
 
 		describe('#calc', function() {
@@ -166,6 +169,7 @@ describe('tinypng', function() {
 					hash.compare(file, function(result, sig) {
 						expect(result).to.equal(true);
 						expect(sig).to.equal(md5);
+
 						done();
 					});
 				});
@@ -179,6 +183,7 @@ describe('tinypng', function() {
 					hash.compare(file, function(result, sig) {
 						expect(result).to.equal(false);
 						expect(sig).to.equal(md5);
+
 						done();
 					});
 				});
@@ -186,14 +191,18 @@ describe('tinypng', function() {
 		});
 
 		describe('#populate', function() {
+			afterEach(function() {
+				try {
+					fs.unlinkSync('.test');
+				} catch(err) {}
+			});
+
 			it('read from sig file and populate internal signature cache', function() {
 				var hash = inst.hasher('.test');
 
 				fs.writeFileSync('.test', JSON.stringify({'test.png': 'test_hash'}));
 
 				hash.populate();
-
-				fs.unlinkSync('.test');
 
 				expect(hash.sigs).to.have.property('test.png', 'test_hash');
 			});
@@ -208,15 +217,20 @@ describe('tinypng', function() {
 		});
 
 		describe('#write', function() {
+			afterEach(function() {
+				try {
+					fs.unlinkSync('.test');
+				} catch(err) {}
+			});
+
 			it('write signature file with correct data', function() {
 				var file = new TestFile(),
 					hash = inst.hasher('.test');
 
 				hash.update(file, 'test_hash');
 				hash.write();
-				expect(fs.readFileSync('.test').toString()).to.equal(JSON.stringify(hash.sigs));
 
-				fs.unlinkSync('.test');
+				expect(fs.readFileSync('.test').toString()).to.equal(JSON.stringify(hash.sigs));
 			});
 
 			it('fail silently on failed write of sig file', function() {
@@ -248,18 +262,32 @@ describe('tinypng', function() {
 });
 
 describe('tinypng gulp', function() {
+	var target = cwd + '/assets/tmp/image.png';
+
+	before(function() {
+		process.env.TINYPNG_SIGS = true;
+		process.env.TINYPNG_KEY = key;
+	});
+
+	after(function() {
+		process.env.TINYPNG_SIGS = false;
+	});
+
+	afterEach(function() {
+		try {
+			fs.unlinkSync(target); fs.unlinkSync('.sigs');
+		} catch(err) {}
+	});
+
 	it('returns compressed files', function(done) {
 		this.timeout(20000);
 
 		var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng']);
 
 		sh.stdout.on('end', function() {
-			var file = cwd + '/assets/tmp/image.png';
+			expect(fs.existsSync(target)).to.equal(true, 'No file created using gulp');
+			expect(fs.readFileSync(target).toString()).to.equal(new TestFile(true).contents.toString());
 
-			expect(fs.existsSync(file)).to.equal(true, 'No file created using gulp');
-			expect(fs.readFileSync(file).toString()).to.equal(new TestFile(true).contents.toString());
-
-			fs.unlink(cwd + '/assets/tmp/image.png');
 			done();
 		});
 	});
@@ -270,9 +298,8 @@ describe('tinypng gulp', function() {
 		var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--ignore', '*ge.png']);
 
 		sh.stdout.on('end', function() {
-			var file = cwd + '/assets/tmp/image.png';
+			expect(fs.existsSync(target)).to.equal(false);
 
-			expect(fs.existsSync(file)).to.equal(false);
 			done();
 		});
 	});
@@ -283,8 +310,6 @@ describe('tinypng gulp', function() {
 		var inst = new TinyPNG(),
 			hash = new inst.hasher('.sigs');
 
-		process.env.TINYPNG_SIGS = true;
-
 		hash.calc(new TestFile(), function(md5) {
 			hash.update('image.png', md5);
 			hash.write();
@@ -292,15 +317,8 @@ describe('tinypng gulp', function() {
 			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);
 
 			sh.stdout.on('end', function() {
-				var file = cwd + '/assets/tmp/image.png';
-
-				expect(fs.existsSync(file)).to.equal(true, 'No file created using gulp');
-				expect(fs.readFileSync(file).toString()).to.equal(new TestFile(true).contents.toString());
-
-				fs.unlinkSync(file);
-				fs.unlinkSync('.sigs');
-
-				process.env.TINYPNG_SIGS = false;
+				expect(fs.existsSync(target)).to.equal(true, 'No file created using gulp');
+				expect(fs.readFileSync(target).toString()).to.equal(new TestFile(true).contents.toString());
 
 				done();
 			});
