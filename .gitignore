@@ -1,5 +1,3 @@
 .DS_Store
-.idea/
-compressed_images/
 node_modules/
-original_images/
+test/assets/tmp
