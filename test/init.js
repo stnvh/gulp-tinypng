@@ -251,12 +251,7 @@ describe('tinypng gulp', function() {
 	it('returns compressed files', function(done) {
 		this.timeout(20000);
 
-		var sh = spawn('gulp', ['tinypng']),
-			out = '';
-
-		sh.stdout.on('data', function(data) {
-			out += data.toString();
-		});
+		var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng']);
 
 		sh.stdout.on('end', function() {
 			var file = cwd + '/assets/tmp/image.png';
@@ -272,7 +267,7 @@ describe('tinypng gulp', function() {
 	it('ignores files on the cli', function(done) {
 		this.timeout(10000);
 
-		var sh = spawn('gulp', ['tinypng', '--ignore', '*ge.png']);
+		var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--ignore', '*ge.png']);
 
 		sh.stdout.on('end', function() {
 			var file = cwd + '/assets/tmp/image.png';
@@ -294,7 +289,7 @@ describe('tinypng gulp', function() {
 			hash.update('image.png', md5);
 			hash.write();
 
-			var sh = spawn('gulp', ['tinypng', '--force', '*ge.png']);
+			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);
 
 			sh.stdout.on('end', function() {
 				var file = cwd + '/assets/tmp/image.png';
