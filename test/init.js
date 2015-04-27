@@ -71,7 +71,7 @@ describe('tinypng', function() {
 
 		describe('#upload', function() {
 			it('upload and return url', function(done) {
-				this.timeout(10000);
+				this.timeout(20000);
 
 				inst.request(image).upload(image, function(err, url) {
 					expect(err).to.equal(null);
@@ -84,7 +84,7 @@ describe('tinypng', function() {
 
 		describe('#download', function() {
 			it('downloads and returns correct buffer', function(done) {
-				this.timeout(10000);
+				this.timeout(20000);
 
 				inst.request().download('http://ovh.net/files/1Mb.dat', function(err, data) {
 					expect(err).to.equal(false);
@@ -111,7 +111,7 @@ describe('tinypng', function() {
 
 		describe('#init', function() {
 			it('returns compressed image', function(done) {
-				this.timeout(20000);
+				this.timeout(30000);
 
 				inst.request(image).init(image, function(err, file) {
 					expect(err).to.equal(false);
@@ -280,7 +280,7 @@ describe('tinypng gulp', function() {
 	});
 
 	it('returns compressed files', function(done) {
-		this.timeout(20000);
+		this.timeout(30000);
 
 		var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng']);
 
@@ -293,7 +293,7 @@ describe('tinypng gulp', function() {
 	});
 
 	it('ignores files on the cli', function(done) {
-		this.timeout(10000);
+		this.timeout(20000);
 
 		var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--ignore', '*ge.png']);
 
@@ -305,7 +305,7 @@ describe('tinypng gulp', function() {
 	});
 
 	it('forces files on the cli', function(done) {
-		this.timeout(20000);
+		this.timeout(30000);
 
 		var inst = new TinyPNG(),
 			hash = new inst.hasher('.sigs');
