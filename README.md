@@ -1,5 +1,6 @@
 [![Version](https://img.shields.io/npm/v/gulp-tinypng-compress.svg)][npm]
 [![Downloaded](https://img.shields.io/npm/dm/gulp-tinypng-compress.svg)][npm]
+[![Build](https://img.shields.io/travis/stnvh/gulp-tinypng-compress.svg)][travis]
 
 # gulp-tinypng-compress
 
@@ -113,3 +114,4 @@ MIT © Stan Hutcheon - Bigfork Ltd.
 >MIT © [Gaurav Jassal](http://gaurav.jassal.me)
 
 [npm]: https://www.npmjs.com/package/gulp-tinypng-compress
+[travis]: https://travis-ci.org/stnvh/gulp-tinypng-compress
