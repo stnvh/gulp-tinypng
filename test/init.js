@@ -6,9 +6,11 @@ var fs = require('fs'),
 	expect = require('chai').expect,
     gutil = require('gulp-util'),
 
+	dry = process.env.PNG_DRY ? true : false,
+
     TinyPNG = require('../index');
 
-var key = 'GbMDuFMrMy6mFJ6UILDKu5dAw6oeqllN',
+var key = 'rlDAQuwa4AOtQPaekNpu-HgLOedHXOlh',
 	cwd = __dirname,
 	TestFile = function(small) {
 		var file = cwd + '/assets/image' + (small ? '_small' : '') + '.png';
@@ -19,63 +21,79 @@ var key = 'GbMDuFMrMy6mFJ6UILDKu5dAw6oeqllN',
 		});
 	};
 
+if(dry) console.info('dry flag set, skipping API tests...');
+
 describe('tinypng', function() {
 	it('test has valid API key', function(done) {
-		var inst = new TinyPNG(),
+		var inst = new TinyPNG(key),
 			test = new TestFile();
-
-		inst.init({
-			key: key
-		});
 
 		test.contents = new Buffer('query', 'utf-8');
 
-		inst.request(test).upload(test, function(err, file) {
+		inst.request(test).upload(function(err, file) {
 			expect(err.message).to.match(/^BadSignature/);
 
 			done();
 		});
+	});
 
+	it('has correct bound object', function() {
+		var struct = ['conf', 'init', 'stream', 'request', 'hasher', 'utils', 'hash'],
+			inst = new TinyPNG(key);
+
+		expect(inst).to.have.all.keys(struct);
+	});
+
+	it('transforms key into config object', function() {
+		var inst = new TinyPNG('test_string_0');
+
+		expect(inst.conf.options.key).to.equal('test_string_0');
+	});
+
+	it('init hashing object', function() {
+		var struct = ['sigFile', 'sigs', 'calc', 'update', 'compare', 'populate', 'write'],
+			inst = new TinyPNG(key);
+
+		expect(inst.hash).to.have.all.keys(struct);
 	});
 
 	describe('#init', function() {
-		var inst = new TinyPNG();
-
-		it('set object configuration', function() {
-			inst.init({
-				key: 'test_string_0'
+		it('sets object configuration', function() {
+			var inst = new TinyPNG({
+				key: 'test_string_0',
+				sigFile: 'test_string_1'
 			});
 
 			expect(inst.conf.options.key).to.equal('test_string_0');
+			expect(inst.conf.options.sigFile).to.equal('test_string_1');
+
 			expect(inst.conf.token).to.equal(new Buffer('api:test_string_0').toString('base64'));
 		});
 
-		it('return stream object', function() {
-			var init = inst.init({
-				key: key
-			});
-
-			expect(init.writable).to.equal(true);
+		it('throws error on missing API key', function() {
+			expect(TinyPNG).to.throw(Error, /missing api key/i);
 		});
 	});
 
 	describe('#request', function() {
-		var inst = new TinyPNG(),
-			image = new TestFile(),
-			len = image.contents.length,
-			download = null;
+		var struct = ['file', 'upload', 'download', 'handler', 'get'],
+			inst = new TinyPNG(key),
+			image = new TestFile();
 
-		inst.init({
-			key: key
+		it('returns correct object', function() {
+			expect(inst.request()).to.have.all.keys(struct);
+			expect(new inst.request()).to.have.all.keys(struct);
 		});
 
 		describe('#upload', function() {
-			it('upload and return url', function(done) {
+			it('uploads and returns object', function(done) {
 				this.timeout(20000);
 
-				inst.request(image).upload(image, function(err, url) {
-					expect(err).to.equal(null);
-					expect(url).to.be.a('string');
+				if(dry) return done();
+
+				inst.request(image).upload(function(err, data) {
+					expect(err).to.not.be.instanceof(Error);
+					expect(data).to.have.all.keys(['url', 'count']);
 
 					done();
 				});
@@ -86,8 +104,8 @@ describe('tinypng', function() {
 			it('downloads and returns correct buffer', function(done) {
 				this.timeout(20000);
 
-				inst.request().download('http://ovh.net/files/1Mb.dat', function(err, data) {
-					expect(err).to.equal(false);
+				inst.request(new TestFile()).download('http://ovh.net/files/1Mb.dat', function(err, data) {
+					expect(err).to.not.be.instanceof(Error);
 					expect(data.toString()).to.equal(fs.readFileSync(cwd + '/assets/download.dat').toString());
 
 					done();
@@ -97,25 +115,28 @@ describe('tinypng', function() {
 
 		describe('#handler', function() {
 			it('returns correct error for API error value', function() {
-				var error = inst.request(new TestFile()).handler('Unauthorized');
+				var error = inst.request(new TestFile()).handler({error: 'Unauthorized'});
 
 				expect(error.message).to.equal('Unauthorized: The request was not authorized with a valid API key for image.png');
 			});
 
 			it('returns correct unknown error', function() {
-				var error = inst.request(new TestFile()).handler('Fatal');
+				var request = new inst.request(new TestFile());
 
-				expect(error.message).to.equal('Fatal: unknown for image.png');
+				expect(request.handler({ error: 'TestError'}).message).to.equal('TestError: unknown for image.png');
+				expect(request.handler({ error: 'TestError', message: 'test'}).message).to.equal('TestError: test for image.png');
 			});
 		});
 
-		describe('#init', function() {
+		describe('#get', function() {
 			it('returns compressed image', function(done) {
 				this.timeout(30000);
 
-				inst.request(image).init(image, function(err, file) {
-					expect(err).to.equal(false);
-					expect(file.contents).to.have.length.lessThan(len);
+				if(dry) return done();
+
+				inst.request(image).get(function(err, file) {
+					expect(err).to.not.be.instanceof(Error);
+					expect(file.contents).to.have.length.lessThan(image.contents.length);
 
 					done();
 				});
@@ -124,21 +145,24 @@ describe('tinypng', function() {
 	});
 
 	describe('#hasher', function() {
-		var inst = new TinyPNG();
+		var struct = ['sigFile', 'sigs', 'calc', 'update', 'compare', 'populate', 'write'],
+			inst = new TinyPNG(key),
+			hash = new inst.hasher('test/location');
 
-		inst.init({
-			key: key
+		it('returns correct object', function() {
+			expect(inst.hasher()).to.have.all.keys(struct);
+			expect(new inst.hasher()).to.have.all.keys(struct);
 		});
 
-		it('set signature file location', function() {
-			expect(inst.hasher('test/location')).to.have.property('sigFile', 'test/location');
+		it('sets signature file location', function() {
+			expect(hash).to.have.property('sigFile', 'test/location');
 		});
 
 		describe('#calc', function() {
-			it('return md5 hash', function(done) {
+			it('returns md5 hash', function(done) {
 				var file = new TestFile();
 
-				inst.hasher().calc(file, function(md5) {
+				hash.calc(file, function(md5) {
 					expect(md5).to.equal(crypto.createHash('md5').update(file.contents).digest('hex'));
 
 					done();
@@ -147,9 +171,9 @@ describe('tinypng', function() {
 		});
 
 		describe('#update', function() {
-			it('update internal signature cache', function() {
+			it('updates internal signature cache', function() {
 				var file = new TestFile(),
-					hash = inst.hasher();
+					hash = new inst.hasher();
 
 				hash.update(file, 'test_hash');
 
@@ -159,9 +183,9 @@ describe('tinypng', function() {
 		});
 
 		describe('#compare', function() {
-			it('compare and succeed', function(done) {
+			it('compares and succeeds', function(done) {
 				var file = new TestFile(),
-					hash = inst.hasher();
+					hash = new inst.hasher();
 
 				hash.calc(file, function(md5) {
 					hash.update(file, md5);
@@ -175,9 +199,9 @@ describe('tinypng', function() {
 				});
 			});
 
-			it('compare and fail', function(done) {
+			it('compares and fails', function(done) {
 				var file = new TestFile(),
-					hash = inst.hasher();
+					hash = new inst.hasher();
 
 				hash.calc(file, function(md5) {
 					hash.compare(file, function(result, sig) {
@@ -197,22 +221,25 @@ describe('tinypng', function() {
 				} catch(err) {}
 			});
 
-			it('read from sig file and populate internal signature cache', function() {
-				var hash = inst.hasher('.test');
-
+			it('reads from sig file and populate internal signature cache', function() {
 				fs.writeFileSync('.test', JSON.stringify({'test.png': 'test_hash'}));
 
-				hash.populate();
+				var hash = new inst.hasher('.test').populate();
 
 				expect(hash.sigs).to.have.property('test.png', 'test_hash');
 			});
 
-			it('fail silently on failed read of sig file', function() {
-				var hash = inst.hasher('.test');
+			it('fails silently on failed read of sig file', function() {
+				var hash = new inst.hasher('.test');
 
-				hash.populate();
+				expect(hash.populate()).to.equal(hash);
+			});
 
-				expect(hash.populate()).to.equal(inst.hasher('.test'))
+			it('doesn\'t error on failed JSON parse', function() {
+				var hash = new inst.hasher('/etc/hosts');
+
+				expect(hash.populate).to.not.throw(Error);
+				expect(hash.populate()).to.not.be.instanceof(Error);
 			});
 		});
 
@@ -223,9 +250,9 @@ describe('tinypng', function() {
 				} catch(err) {}
 			});
 
-			it('write signature file with correct data', function() {
+			it('writes signature file with correct data', function() {
 				var file = new TestFile(),
-					hash = inst.hasher('.test');
+					hash = new inst.hasher('.test');
 
 				hash.update(file, 'test_hash');
 				hash.write();
@@ -233,30 +260,27 @@ describe('tinypng', function() {
 				expect(fs.readFileSync('.test').toString()).to.equal(JSON.stringify(hash.sigs));
 			});
 
-			it('fail silently on failed write of sig file', function() {
+			it('fails silently on failed write of sig file', function() {
 				var file = new TestFile(),
-					hash = inst.hasher();
+					hash = new inst.hasher();
 
 				hash.update(file, 'test_hash');
-				hash.write();
 
-				expect(hash.write()).to.equal(inst.hasher());
+				expect(hash.write()).to.equal(hash);
 			});
 		});
 	});
 
-	describe('#glob', function() {
-		var inst = new TinyPNG();
+	describe('utils', function() {
+		describe('#glob', function() {
+			var inst = new TinyPNG(key);
 
-		inst.init({
-			key: key
-		});
+			it('returns proper value on correct glob match', function() {
+				var file = new TestFile();
 
-		it('should return proper value on correct glob match', function() {
-			var file = new TestFile();
-
-			expect(inst.glob(file, '*ge.png')).to.equal(true);
-			expect(inst.glob(file, '*go.png')).to.equal(false);
+				expect(inst.utils.glob(file, '*ge.png')).to.equal(true);
+				expect(inst.utils.glob(file, '*go.png')).to.equal(false);
+			});
 		});
 	});
 });
@@ -281,12 +305,15 @@ describe('tinypng gulp', function() {
 
 	it('returns compressed files', function(done) {
 		this.timeout(30000);
+		if(dry) return done();
+
+		file = new TestFile();
 
 		var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng']);
 
 		sh.stdout.on('end', function() {
-			expect(fs.existsSync(target)).to.equal(true, 'No file created using gulp');
-			expect(fs.readFileSync(target).toString()).to.equal(new TestFile(true).contents.toString());
+			expect(fs.existsSync(target)).to.equal(true, 'compressed output file created');
+			expect(fs.readFileSync(target)).to.have.length.lessThan(file.contents.length);
 
 			done();
 		});
@@ -306,19 +333,21 @@ describe('tinypng gulp', function() {
 
 	it('forces files on the cli', function(done) {
 		this.timeout(30000);
+		if(dry) return done();
 
-		var inst = new TinyPNG(),
-			hash = new inst.hasher('.sigs');
+		var inst = new TinyPNG(key),
+			hash = new inst.hasher('.sigs'),
+			file = new TestFile();
 
-		hash.calc(new TestFile(), function(md5) {
+		hash.calc(file, function(md5) {
 			hash.update('image.png', md5);
 			hash.write();
 
 			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);
 
 			sh.stdout.on('end', function() {
-				expect(fs.existsSync(target)).to.equal(true, 'No file created using gulp');
-				expect(fs.readFileSync(target).toString()).to.equal(new TestFile(true).contents.toString());
+				expect(fs.existsSync(target)).to.equal(true, 'compressed output file created');
+				expect(fs.readFileSync(target)).to.have.length.lessThan(file.contents.length);
 
 				done();
 			});
