@@ -78,6 +78,12 @@ Default: `false`
 
 Set to true to log errors & messages to the console. Errors are dispatched via events anyway, so plugins like `gulp-plumber` can handle these for you.
 
+#### options.sameDest
+Type: `Boolean`
+Default `false`
+
+If your source is the same as your destination (images are written over themselves), set this to true
+
 #### options.force
 Type: `Boolean` / `String`
 Default: `false`

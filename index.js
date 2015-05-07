@@ -26,7 +26,8 @@ function TinyPNG(opt, obj) {
             key: '',
             sigFile: false,
             log: false,
-            force: false, ignore: false
+            force: false, ignore: false,
+            sameDest: false
         }
     };
 
@@ -58,14 +59,23 @@ function TinyPNG(opt, obj) {
 
             var request = function(success) {
                 self.request(file).get(function(err, file) {
+                    var end = function() { this.push(file); success && success(!err); cb(); }.bind(this);
+
                     if(err) {
                         this.emit('error', new PluginError(PLUGIN_NAME, err));
                     } else {
-                        this.push(file);
                         self.utils.log('[compressing] ' + chalk.green('✔ ') + file.relative + chalk.gray(' (done)'));
+
+                        if(opt.sameDest) {
+                            self.hash.calc(file, function(hash) {
+                                self.hash.update(file, hash);
+
+                                end();
+                            });
+                        } else {
+                            end();
+                        }
                     }
-                    success && success(!err);
-                    return cb();
                 }.bind(this)); // lol @ scoping
             }.bind(this);
 
@@ -86,7 +96,7 @@ function TinyPNG(opt, obj) {
                             return cb();
                         }
                         request(function(done) {
-                            if(done) self.hash.update(file, hash);
+                            if(done && !opt.sameDest) self.hash.update(file, hash);
                         });
                     }.bind(this));
                 } else {
