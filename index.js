@@ -67,8 +67,12 @@ function TinyPNG(opt, obj) {
             }
 
             if(file.isBuffer()) {
+                var hash = null;
+
                 if(opt.sigFile && !self.utils.glob(file, opt.force)) {
                     var result = self.hash.compare(file);
+
+                    hash = result.hash;
 
                     if(result.match) {
                         self.utils.log('[skipping] ' + chalk.green('✔ ') + file.relative);
