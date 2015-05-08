@@ -72,17 +72,19 @@ If set to a filename, it will compare existing source file md5 signatures agains
 
 Signatures are based off the unminified source image, so that when the source changes it will be re-minified and re-written to the destination file.
 
-#### options.log
-Type: `Boolean`
-Default: `false`
-
-Set to true to log errors & messages to the console. Errors are dispatched via events anyway, so plugins like `gulp-plumber` can handle these for you.
-
 #### options.sameDest
 Type: `Boolean`
 Default `false`
 
 If your source is the same as your destination (images are written over themselves), and you want to use the signature checking feature, set this to true
+
+>**Note:** If your source and destination are the same, it's recommended you use this, and `options.sigFile`, as it prevents you from continually uploading already compressed images each time you run the task
+
+#### options.log
+Type: `Boolean`
+Default: `false`
+
+Set to true to log errors & messages to the console. Errors are dispatched via events anyway, so plugins like `gulp-plumber` can handle these for you.
 
 #### options.force
 Type: `Boolean` / `String`
