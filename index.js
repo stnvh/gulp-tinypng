@@ -57,28 +57,6 @@ function TinyPNG(opt, obj) {
         return through.obj(function(file, enc, cb) {
             if(self.utils.glob(file, opt.ignore)) return cb();
 
-            var request = function(success) {
-                self.request(file).get(function(err, file) {
-                    var end = function() { this.push(file); success && success(!err); cb(); }.bind(this);
-
-                    if(err) {
-                        this.emit('error', new PluginError(PLUGIN_NAME, err));
-                    } else {
-                        self.utils.log('[compressing] ' + chalk.green('✔ ') + file.relative + chalk.gray(' (done)'));
-
-                        if(opt.sameDest) {
-                            self.hash.calc(file, function(hash) {
-                                self.hash.update(file, hash);
-
-                                end();
-                            });
-                        } else {
-                            end();
-                        }
-                    }
-                }.bind(this)); // lol @ scoping
-            }.bind(this);
-
             if(file.isNull()) {
                 return cb();
             }
@@ -90,18 +68,40 @@ function TinyPNG(opt, obj) {
 
             if(file.isBuffer()) {
                 if(opt.sigFile && !self.utils.glob(file, opt.force)) {
-                    self.hash.compare(file, function(result, hash) {
-                        if(result) {
-                            self.utils.log('[skipping] ' + chalk.green('✔ ') + file.relative);
-                            return cb();
-                        }
-                        request(function(done) {
-                            if(done && !opt.sameDest) self.hash.update(file, hash);
-                        });
-                    }.bind(this));
-                } else {
-                    request();
+                    var result = self.hash.compare(file);
+
+                    if(result.match) {
+                        self.utils.log('[skipping] ' + chalk.green('✔ ') + file.relative);
+                        return cb();
+                    }
                 }
+
+                self.request(file).get(function(err, tinyFile) {
+                    if(err) {
+                        this.emit('error', new PluginError(PLUGIN_NAME, err));
+                        return cb();
+                    }
+
+                    self.utils.log('[compressing] ' + chalk.green('✔ ') + file.relative + chalk.gray(' (done)'));
+
+                    if(opt.sigFile) {
+                        var curr = {
+                            file: file,
+                            hash: hash
+                        };
+
+                        if(opt.sameDest) {
+                            curr.file = tinyFile;
+                            curr.hash = self.hash.calc(tinyFile);
+                        }
+
+                        self.hash.update(curr.file, curr.hash);
+                    }
+
+                    this.push(tinyFile);
+
+                    return cb();
+                }.bind(this)); // maintain stream context
             }
         })
         .on('error', function(err) {
@@ -117,13 +117,10 @@ function TinyPNG(opt, obj) {
         var self = this;
 
         return {
-            file: {
-                curr: file,
-                new: (file && 'clone' in file) ? file.clone() : false
-            },
+            file: file,
 
             upload: function(cb) {
-                var file = this.file.curr;
+                var file = this.file;
 
                 request.post({
                     url: 'https://api.tinypng.com/shrink',
@@ -187,17 +184,18 @@ function TinyPNG(opt, obj) {
 
             get: function(cb) {
                 var self = this,
-                    files = this.file;
+                    file = this.file;
 
                 self.upload(function(err, data) {
-                    if(err) return cb(err, files.curr);
+                    if(err) return cb(err, file);
 
                     self.download(data.url, function(err, data) {
-                        if(err) return cb(err, files.curr);
+                        if(err) return cb(err, file);
 
-                        files.new.contents = data;
+                        var tinyFile = file.clone();
+                        tinyFile.contents = data;
 
-                        cb(false, files.new);
+                        cb(false, tinyFile);
                     });
                 });
 
@@ -212,11 +210,11 @@ function TinyPNG(opt, obj) {
             sigs: {},
 
             calc: function(file, cb) {
-                var md5 = crypto.createHash('md5');
+                var md5 = crypto.createHash('md5').update(file.contents).digest('hex');
 
-                cb(md5.update(file.contents).digest('hex'));
+                cb && cb(md5);
 
-                return this;
+                return cb ? this : md5;
             },
             update: function(file, hash) {
                 this.changed = true;
@@ -225,11 +223,13 @@ function TinyPNG(opt, obj) {
                 return this;
             },
             compare: function(file, cb) {
-                this.calc(file, function(digest) {
-                    cb((file.relative in this.sigs && digest === this.sigs[file.relative]), digest);
-                }.bind(this));
 
-                return this;
+                var md5 = this.calc(file),
+                    result = (file.relative in this.sigs && md5 === this.sigs[file.relative]);
+
+                cb && cb(result, md5);
+
+                return cb ? this : { match: result, hash: md5 };
             },
             populate: function() {
                 var data = false;
