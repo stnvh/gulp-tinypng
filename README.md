@@ -82,7 +82,7 @@ Set to true to log errors & messages to the console. Errors are dispatched via e
 Type: `Boolean`
 Default `false`
 
-If your source is the same as your destination (images are written over themselves), set this to true
+If your source is the same as your destination (images are written over themselves), and you want to use the signature checking feature, set this to true
 
 #### options.force
 Type: `Boolean` / `String`
