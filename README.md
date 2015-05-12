@@ -80,6 +80,15 @@ If your source is the same as your destination (images are written over themselv
 
 >**Note:** If your source and destination are the same, it's recommended you use this, and `options.sigFile`, as it prevents you from continually uploading already compressed images each time you run the task
 
+#### options.summarize
+Type: `Boolean`
+Default: `false`
+
+Outputs statistics once all images have been handled.
+```bash
+[09:47:43] gulp-tinypng-compress Skipped: 0 images, Compressed: 1 image, Savings: 3.98 KB (ratio: 0.4109)
+```
+
 #### options.log
 Type: `Boolean`
 Default: `false`
@@ -107,7 +116,7 @@ Same as `options.force` except ignores files if the glob is matched
 
 `--ignore` flag on the command line
 
-###Deprecated/non-functional options
+### Deprecated/non-functional options
 
 **options.checkSigs** - Removed in favor of `options.sigFile`
 
