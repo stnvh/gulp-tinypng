@@ -38,7 +38,7 @@ describe('tinypng', function() {
 	});
 
 	it('has correct bound object', function() {
-		var struct = ['conf', 'init', 'stream', 'request', 'hasher', 'utils', 'hash'],
+		var struct = ['conf', 'init', 'stream', 'request', 'hasher', 'utils', 'hash', 'stats'],
 			inst = new TinyPNG(key);
 
 		expect(inst).to.have.all.keys(struct);
