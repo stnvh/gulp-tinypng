@@ -253,7 +253,7 @@ function TinyPNG(opt, obj) {
             },
             update: function(file, hash) {
                 this.changed = true;
-                this.sigs[file.relative] = hash;
+                this.sigs[file.path.replace(file.cwd, '')] = hash;
 
                 return this;
             },
