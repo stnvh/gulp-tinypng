@@ -260,7 +260,8 @@ function TinyPNG(opt, obj) {
             compare: function(file, cb) {
 
                 var md5 = this.calc(file),
-                    result = (file.relative in this.sigs && md5 === this.sigs[file.relative]);
+                    filepath = file.path.replace(file.cwd, ''),
+                    result = (filepath in this.sigs && md5 === this.sigs[filepath]);
 
                 cb && cb(result, md5);
 
