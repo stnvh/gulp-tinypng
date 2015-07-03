@@ -38,7 +38,7 @@ describe('tinypng', function() {
 	});
 
 	it('has correct bound object', function() {
-		var struct = ['conf', 'init', 'stream', 'request', 'hasher', 'utils', 'hash'],
+		var struct = ['conf', 'init', 'stream', 'request', 'hasher', 'utils', 'hash', 'stats'],
 			inst = new TinyPNG(key);
 
 		expect(inst).to.have.all.keys(struct);
@@ -340,7 +340,7 @@ describe('tinypng gulp', function() {
 			file = new TestFile();
 
 		hash.calc(file, function(md5) {
-			hash.update('image.png', md5);
+			hash.update(file, md5);
 			hash.write();
 
 			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);

@@ -27,8 +27,18 @@ function TinyPNG(opt, obj) {
             sigFile: false,
             log: false,
             force: false, ignore: false,
-            sameDest: false
+            sameDest: false,
+            summarize: false
         }
+    };
+
+    this.stats = {
+        total: {
+            in: 0,
+            out: 0
+        },
+        compressed: 0,
+        skipped: 0
     };
 
     this.init = function(opt) {
@@ -40,6 +50,8 @@ function TinyPNG(opt, obj) {
 
         if(!opt.force) opt.force = gutil.env.force || false; // force match glob
         if(!opt.ignore) opt.ignore = gutil.env.ignore || false; // ignore match glob
+
+        if(opt.summarise) opt.summarize = true; // chin chin, old chap!
 
         this.conf.options = opt; // export opts
 
@@ -76,6 +88,8 @@ function TinyPNG(opt, obj) {
 
                     if(result.match) {
                         self.utils.log('[skipping] ' + chalk.green('✔ ') + file.relative);
+                        self.stats.skipped++;
+
                         return cb();
                     }
                 }
@@ -87,6 +101,10 @@ function TinyPNG(opt, obj) {
                     }
 
                     self.utils.log('[compressing] ' + chalk.green('✔ ') + file.relative + chalk.gray(' (done)'));
+                    self.stats.compressed++;
+
+                    self.stats.total.in += file.contents.toString().length;
+                    self.stats.total.out += tinyFile.contents.toString().length;
 
                     if(opt.sigFile) {
                         var curr = {
@@ -114,6 +132,19 @@ function TinyPNG(opt, obj) {
         })
         .on('end', function() {
             if(!emitted && opt.sigFile) self.hash.write(); // write sigs after complete
+            if(opt.summarize) {
+                var stats = self.stats,
+                    info = util.format('Skipped: %s image%s, Compressed: %s image%s, Savings: %s (ratio: %s)',
+                        stats.skipped,
+                        stats.skipped == 1 ? '' : 's',
+                        stats.compressed,
+                        stats.compressed == 1 ? '' : 's',
+                        (self.utils.prettySize(stats.total.in - stats.total.out)),
+                        (stats.total.in ? Math.round(stats.total.out / stats.total.in * 10000) / 10000 : 0)
+                    );
+
+                self.utils.log(info, true);
+            }
         });
     };
 
@@ -222,7 +253,7 @@ function TinyPNG(opt, obj) {
             },
             update: function(file, hash) {
                 this.changed = true;
-                this.sigs[file.relative] = hash;
+                this.sigs[file.path.replace(file.cwd, '')] = hash;
 
                 return this;
             },
@@ -287,6 +318,13 @@ function TinyPNG(opt, obj) {
                 return this.glob(file, glob, opt);
             }
             return result;
+        },
+
+        prettySize: function(bytes) {
+            if(bytes === 0) return '0.00 B';
+
+            var pos = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, pos)).toFixed(2) + ' ' + ' KMGTP'.charAt(pos) + 'B';
         }
     };
 
