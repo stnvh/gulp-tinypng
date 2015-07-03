@@ -340,7 +340,7 @@ describe('tinypng gulp', function() {
 			file = new TestFile();
 
 		hash.calc(file, function(md5) {
-			hash.update('image.png', md5);
+			hash.update(file, md5);
 			hash.write();
 
 			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);
