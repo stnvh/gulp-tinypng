@@ -38,7 +38,6 @@ gulp.task('tinypng', function () {
 	gulp.src('images/src/**/*.{png,jpg,jpeg}')
 		.pipe(tinypng({
 			key: 'API_KEY',
-			checkSigs: true,
 			sigFile: 'images/.tinypng-sigs',
 			log: true
 		}))
@@ -80,7 +79,7 @@ If your source is the same as your destination (images are written over themselv
 
 >**Note:** If your source and destination are the same, it's recommended you use this, and `options.sigFile`, as it prevents you from continually uploading already compressed images each time you run the task
 
-#### options.summarize
+#### options.summarize/summarise
 Type: `Boolean`
 Default: `false`
 
