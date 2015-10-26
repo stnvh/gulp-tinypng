@@ -130,6 +130,7 @@ function TinyPNG(opt, obj) {
         })
         .on('error', function(err) {
             emitted = true; // surely a method in the stream to handle this?
+            self.stats.skipped++;
             self.utils.log(err.message);
         })
         .on('end', function() {
