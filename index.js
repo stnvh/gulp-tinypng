@@ -30,7 +30,8 @@ function TinyPNG(opt, obj) {
             force: false, ignore: false,
             sameDest: false,
             summarize: false,
-            parallel: true
+            parallel: true,
+            parallelMax: 5
         }
     };
 
@@ -68,7 +69,7 @@ function TinyPNG(opt, obj) {
             opt = this.conf.options,
             emitted = false;
 
-        return (opt.parallel ? throughParallel : through).obj(function(file, enc, cb) {
+        return (opt.parallel ? throughParallel : through).obj({maxConcurrency: opt.parallelMax}, function(file, enc, cb) {
             if(self.utils.glob(file, opt.ignore)) return cb();
 
             if(file.isNull()) {
