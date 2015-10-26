@@ -1,5 +1,6 @@
 var test = process.env.NODE_ENV == 'test',
     through = require('through2'),
+    throughParallel = require('through2-concurrent'),
     gutil = require('gulp-util'),
     chalk = gutil.colors,
     request = require('request'),
@@ -28,7 +29,8 @@ function TinyPNG(opt, obj) {
             log: false,
             force: false, ignore: false,
             sameDest: false,
-            summarize: false
+            summarize: false,
+            parallel: true
         }
     };
 
@@ -66,7 +68,7 @@ function TinyPNG(opt, obj) {
             opt = this.conf.options,
             emitted = false;
 
-        return through.obj(function(file, enc, cb) {
+        return (opt.parallel ? throughParallel : through).obj(function(file, enc, cb) {
             if(self.utils.glob(file, opt.ignore)) return cb();
 
             if(file.isNull()) {
