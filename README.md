@@ -94,6 +94,20 @@ Default: `false`
 
 Set to true to log errors & messages to the console. Errors are dispatched via events anyway, so plugins like `gulp-plumber` can handle these for you.
 
+#### options.parallel
+Type: `Boolean`
+Default: `true`
+
+Enables concurrent uploads to the TinyPNG server to speed up total compression time.
+
+<sub>(thanks [HugoHeneault](https://github.com/HugoHeneault) for this feature suggestion)</sub>
+
+#### options.parallelMax
+Type: `Integer`
+Default: `5`
+
+The amount of concurrent uploads allowed at one time, increase if you/your request limits can handle it - very easy to max out your monthly requests, use with caution!
+
 #### options.force
 Type: `Boolean` / `String`
 Default: `false`
