@@ -185,7 +185,7 @@ function TinyPNG(opt, obj) {
                         }
 
                         if(!err) {
-                            if(data.error) err = this.handler(data); else if(data.output.url) {
+                            if(data.error) err = this.handler(data, res.statusCode); else if(data.output.url) {
                                 info.url = data.output.url;
                             } else err = new Error('Invalid TinyPNG response object returned for ' + file.relative);
                         }
@@ -207,18 +207,8 @@ function TinyPNG(opt, obj) {
                 });
             },
 
-            handler: function(data) {
-                var errs = {
-                    Unauthorized: 'The request was not authorized with a valid API key',
-                    InputMissing: 'The file that was uploaded is empty or no data was posted',
-                    BadSignature: 'The file was not recognized as a PNG or JPEG file. It may be corrupted or it is a different file type',
-                    UnsupportedFile: 'The file was recognized as a PNG or JPEG file, but is not supported',
-                    DecodeError: 'The file had a valid PNG or JPEG signature, but could not be decoded, most likely corrupt',
-                    TooManyRequests: 'Your monthly upload limit has been exceeded',
-                    InternalServerError: 'An internal error occurred during compression'
-                };
-
-                return new Error(data.error + ': ' + ((data.error in errs) ? errs[data.error] : data.message || 'unknown') + ' for ' + file.relative);
+            handler: function(data, status) {
+                return new Error((data.error || 'Unknown') + ' (' + status + '): ' + (data.message || 'No message returned') + ' for ' + file.relative);
             },
 
             get: function(cb) {

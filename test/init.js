@@ -24,19 +24,6 @@ var key = 'rlDAQuwa4AOtQPaekNpu-HgLOedHXOlh',
 if(dry) console.info('dry flag set, skipping API tests...');
 
 describe('tinypng', function() {
-	it('test has valid API key', function(done) {
-		var inst = new TinyPNG(key),
-			test = new TestFile();
-
-		test.contents = new Buffer('query', 'utf-8');
-
-		inst.request(test).upload(function(err, file) {
-			expect(err.message).to.match(/^BadSignature/);
-
-			done();
-		});
-	});
-
 	it('has correct bound object', function() {
 		var struct = ['conf', 'init', 'stream', 'request', 'hasher', 'utils', 'hash', 'stats'],
 			inst = new TinyPNG(key);
@@ -114,17 +101,11 @@ describe('tinypng', function() {
 		});
 
 		describe('#handler', function() {
-			it('returns correct error for API error value', function() {
-				var error = inst.request(new TestFile()).handler({error: 'Unauthorized'});
-
-				expect(error.message).to.equal('Unauthorized: The request was not authorized with a valid API key for image.png');
-			});
-
 			it('returns correct unknown error', function() {
 				var request = new inst.request(new TestFile());
 
-				expect(request.handler({ error: 'TestError'}).message).to.equal('TestError: unknown for image.png');
-				expect(request.handler({ error: 'TestError', message: 'test'}).message).to.equal('TestError: test for image.png');
+				expect(request.handler({ error: 'TestError'}, 500).message).to.equal('TestError (500): No message returned for image.png');
+				expect(request.handler({ error: 'TestError', message: 'test'}, 500).message).to.equal('TestError (500): test for image.png');
 			});
 		});
 
