@@ -1,6 +1,6 @@
 {
   "name": "gulp-tinypng-compress",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "TinyPNG API wrapper for compressing PNG & JPG images",
   "main": "index.js",
   "repository": "stnvh/gulp-tinypng-compress",
