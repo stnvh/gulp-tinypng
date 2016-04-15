@@ -173,7 +173,7 @@ function TinyPNG(opt, obj) {
                     var data,
                         info = {
                             url: false,
-                            count: res.headers['compression-count'] || 0
+                            count: (res && 'headers' in res && res.headers['compression-count']) || 0
                         };
                     if(err) {
                         err = new Error('Upload failed for ' + file.relative + ' with error: ' + err.message);
