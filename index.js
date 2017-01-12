@@ -239,7 +239,7 @@ function TinyPNG(opt, obj) {
             sigs: {},
 
             calc: function(file, cb) {
-                var md5 = crypto.createHash('md5').update(file.contents).digest('hex');
+                var md5 = crypto.createHash('md5').update(file.path).digest('hex');
 
                 cb && cb(md5);
 
