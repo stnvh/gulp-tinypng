@@ -10,7 +10,7 @@ var test = process.env.NODE_ENV == 'test',
     crypto = require('crypto'),
     minimatch = require('minimatch');
 
-var PLUGIN_NAME = 'gulp-tinypng-compress',
+var PLUGIN_NAME = 'gulp-tinypng-extended',
     PluginError = gutil.PluginError;
 
 /**

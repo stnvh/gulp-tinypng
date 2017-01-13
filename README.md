@@ -1,25 +1,26 @@
-[![Version](https://img.shields.io/npm/v/gulp-tinypng-compress.svg)][npm]
-[![Downloaded](https://img.shields.io/npm/dm/gulp-tinypng-compress.svg)][npm]
-[![Build](https://img.shields.io/travis/stnvh/gulp-tinypng-compress.svg)][travis]
+[![Version](https://img.shields.io/npm/v/gulp-tinypng-extended.svg)][npm]
+[![Downloaded](https://img.shields.io/npm/dm/gulp-tinypng-extended.svg)][npm]
+[![Build](https://img.shields.io/travis/nymo/gulp-tinypng-extended.svg)][travis]
 
 # gulp-tinypng-compress
 
 > [TinyPNG](https://tinypng.com) API wrapper for compressing PNG & JPG images
 
-An actively maintained & developed fork of [gulp-tinypng](https://github.com/creativeaura/gulp-tinypng).
+An actively maintained & developed fork of [gulp-tinypng-compress](https://github.com/stnvh/gulp-tinypng-compress).
 
-*Main differences from gulp-tinypng:*
-- File signature checking (to minimise unnecessary API calls, optional)
-- No temporary files/folders are created on compressed image download - fed straight from tinypng to the pipe
-- Maintained with the intention of standardising the tinypng featureset across gulp & grunt (and others too!)
+*Main differences from gulp-tinypng-compress:*
+- Updated minimatch plugin to current version to avoid deprecated warnings
+- Use file path instead of file content for the md5 hash in the signature file.
+- Added new option to overwrite the original image in the same folder instead of creating a new compressed file in different path
+- Added support for preserving metadata (only copyright for the moment)
 
 ## Install
 *Requires node `0.10.x` or above*
 
-Install with [npm](https://npmjs.org/package/gulp-tinypng-compress) - In your project folder, run:
+Install with [npm](https://npmjs.org/package/gulp-tinypng-extended) - In your project folder, run:
 
 ```
-npm install gulp-tinypng-compress
+npm install gulp-tinypng-extended
 ```
 
 To run tests:
@@ -32,7 +33,7 @@ npm test
 
 ```js
 var gulp = require('gulp');
-var tinypng = require('gulp-tinypng-compress');
+var tinypng = require('gulp-tinypng-extended');
 
 gulp.task('tinypng', function () {
 	gulp.src('images/src/**/*.{png,jpg,jpeg}')
@@ -136,11 +137,12 @@ Same as `options.force` except ignores files if the glob is matched
 
 ## License
 
-MIT © Stan Hutcheon - Bigfork Ltd.
+Please refer to the [LICENSE](https://github.com/nymo/gulp-tinypng-extended/blob/master/LICENSE) file.
 
 **Original license:**
 
+>MIT © [Stan Hutcheon](https://github.com/stnvh)
 >MIT © [Gaurav Jassal](http://gaurav.jassal.me)
 
-[npm]: https://www.npmjs.com/package/gulp-tinypng-compress
-[travis]: https://travis-ci.org/stnvh/gulp-tinypng-compress
+[npm]: https://www.npmjs.com/package/gulp-tinypng-extended
+[travis]: https://travis-ci.org/nymo/gulp-tinypng-extended
