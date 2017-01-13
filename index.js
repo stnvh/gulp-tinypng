@@ -27,11 +27,13 @@ function TinyPNG(opt, obj) {
             key: '',
             sigFile: false,
             log: false,
-            force: false, ignore: false,
+            force: false,
+            ignore: false,
             sameDest: false,
             summarize: false,
             parallel: true,
-            parallelMax: 5
+            parallelMax: 5,
+            keepOriginal: true
         }
     };
 
@@ -53,7 +55,6 @@ function TinyPNG(opt, obj) {
 
         if(!opt.force) opt.force = gutil.env.force || false; // force match glob
         if(!opt.ignore) opt.ignore = gutil.env.ignore || false; // ignore match glob
-
         if(opt.summarise) opt.summarize = true; // chin chin, old chap!
 
         this.conf.options = opt; // export opts
@@ -122,8 +123,11 @@ function TinyPNG(opt, obj) {
 
                         self.hash.update(curr.file, curr.hash);
                     }
-
-                    this.push(tinyFile);
+                    if (opt.keepOriginal === false) {
+                        fs.writeFile(file.path, tinyFile.contents);
+                    } else {
+                        this.push(tinyFile);
+                    }
 
                     return cb();
                 }.bind(this)); // maintain stream context
@@ -239,7 +243,7 @@ function TinyPNG(opt, obj) {
             sigs: {},
 
             calc: function(file, cb) {
-                var md5 = crypto.createHash('md5').update(file.path).digest('hex');
+                var md5 = crypto.createHash('md5').update(file.contents).digest('hex');
 
                 cb && cb(md5);
 

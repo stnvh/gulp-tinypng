@@ -10,9 +10,7 @@ An actively maintained & developed fork of [gulp-tinypng-compress](https://githu
 
 *Main differences from gulp-tinypng-compress:*
 - Updated minimatch plugin to current version to avoid deprecated warnings
-- Use file path instead of file content for the md5 hash in the signature file.
-- Added new option to overwrite the original image in the same folder instead of creating a new compressed file in different path
-- Added support for preserving metadata (only copyright for the moment)
+- Added new option (keepOriginal) to override the original image instead of creating a new compressed file in the output path
 
 ## Install
 *Requires node `0.10.x` or above*
@@ -79,6 +77,14 @@ Default `false`
 If your source is the same as your destination (images are written over themselves), and you want to use the signature checking feature, set this to true
 
 >**Note:** If your source and destination are the same, it's recommended you use this, and `options.sigFile`, as it prevents you from continually uploading already compressed images each time you run the task
+
+#### options.keepOriginal
+Type: `Boolean`
+Default `True`
+
+With this option you can tell the plugin to override your original file with the compressed one. The gulp.dest() output
+path for the images is then being ignored. 
+
 
 #### options.summarize/summarise
 Type: `Boolean`
