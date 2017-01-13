@@ -144,7 +144,7 @@ describe('tinypng', function() {
 				var file = new TestFile();
 
 				hash.calc(file, function(md5) {
-					expect(md5).to.equal(crypto.createHash('md5').update(file.contents).digest('hex'));
+					expect(md5).to.equal(crypto.createHash('md5').update(file.path).digest('hex'));
 
 					done();
 				});
