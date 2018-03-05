@@ -26,6 +26,7 @@ function TinyPNG(opt, obj) {
         options: {
             key: '',
             sigFile: false,
+            sigFolder: false,
             log: false,
             force: false, ignore: false,
             sameDest: false,
@@ -59,7 +60,7 @@ function TinyPNG(opt, obj) {
         this.conf.options = opt; // export opts
 
         this.conf.token = new Buffer('api:' + opt.key).toString('base64'); // prep key
-        this.hash = new this.hasher(opt.sigFile).populate(); // init hasher class
+        this.hash = new this.hasher(opt.sigFile, opt.sigFolder).populate(); // init hasher class
 
         return this;
     };
@@ -84,7 +85,7 @@ function TinyPNG(opt, obj) {
             if(file.isBuffer()) {
                 var hash = null;
 
-                if(opt.sigFile && !self.utils.glob(file, opt.force)) {
+                if((opt.sigFile || opt.sigFolder) && !self.utils.glob(file, opt.force)) {
                     var result = self.hash.compare(file);
 
                     hash = result.hash;
@@ -109,7 +110,7 @@ function TinyPNG(opt, obj) {
                     self.stats.total.in += file.contents.toString().length;
                     self.stats.total.out += tinyFile.contents.toString().length;
 
-                    if(opt.sigFile) {
+                    if(opt.sigFile || opt.sigFolder) {
                         var curr = {
                             file: file,
                             hash: hash
@@ -135,7 +136,8 @@ function TinyPNG(opt, obj) {
             self.utils.log(err.message);
         })
         .on('end', function() {
-            if(!emitted && opt.sigFile) self.hash.write(); // write sigs after complete
+            if(!emitted && opt.sigFile) self.hash.writeFile(); // write sigs after complete
+            if(!emitted && opt.sigFolder) self.hash.writeFolder(); // write sigs after complete
             if(opt.summarize) {
                 var stats = self.stats,
                     info = util.format('Skipped: %s image%s, Compressed: %s image%s, Savings: %s (ratio: %s)',
@@ -233,9 +235,10 @@ function TinyPNG(opt, obj) {
         };
     };
 
-    this.hasher = function(sigFile) {
+    this.hasher = function(sigFile, sigFolder) {
         return {
             sigFile: sigFile || false,
+            sigFolder: sigFolder || false,
             sigs: {},
 
             calc: function(file, cb) {
@@ -261,6 +264,14 @@ function TinyPNG(opt, obj) {
 
                 return cb ? this : { match: result, hash: md5 };
             },
+            mkdir: function(filePath) {
+                var dirname = path.dirname(filePath);
+                if (fs.existsSync(dirname)) {
+                    return true;
+                }
+                this.mkdir(dirname);
+                fs.mkdirSync(dirname);
+            },
             populate: function() {
                 var data = false;
 
@@ -275,13 +286,66 @@ function TinyPNG(opt, obj) {
                     if(data) this.sigs = data;
                 }
 
+                if(this.sigFolder && fs.existsSync(this.sigFolder)) {
+                    try {
+                        data = this.walkDir(this.sigFolder).reduce(function(result, item) {
+                            var key = Object.keys(item)[0];
+                            result[key] = item[key];
+                            return result;
+                        }, {});
+                    } catch(err) {
+                        // meh
+                    }
+
+                    if(data) this.sigs = data;
+                }
+
                 return this;
             },
-            write: function() {
+            walkDir: function(dir) {
+                var self = this;
+                var results = [];
+                var list = fs.readdirSync(dir);
+                list.forEach(function (file) {
+                    file = dir + '/' + file;
+                    var stat = fs.statSync(file);
+                    if (stat && stat.isDirectory()) {
+                        /* Recurse into a subdirectory */
+                        results = results.concat(self.walkDir(file));
+                    } else {
+                        /* Is a file */
+                        var data = {};
+                        var key = file.replace(self.sigFolder.replace(/\/$/, ""), '');
+                        key = key.substring(0, key.lastIndexOf('.sig'));
+                        data[key] = fs.readFileSync(file, 'utf-8');
+                        results.push(data);
+                    }
+                });
+                return results;
+            },
+            writeFile: function() {
                 if(this.changed) {
                     try {
                         fs.writeFileSync(this.sigFile, JSON.stringify(this.sigs));
                     } catch(err) {
+                        // meh
+                    }
+                }
+
+                return this;
+            },
+            writeFolder: function() {
+                if(this.changed) {
+                    try {
+                        var self = this;
+
+                        Object.keys(self.sigs).forEach(function (key) {
+                            var file = self.sigFolder.replace(/\/$/, "") + "/" + key.replace(/^\//, "") + '.sig';
+                            self.mkdir(file);
+
+                            fs.writeFileSync(file, self.sigs[key]);
+                        });
+                    } catch (err) {
                         // meh
                     }
                 }
