@@ -71,13 +71,23 @@ If set to a filename, it will compare existing source file md5 signatures agains
 
 Signatures are based off the unminified source image, so that when the source changes it will be re-minified and re-written to the destination file.
 
+#### options.sigFolder
+Type: `String`
+Default: `''`
+
+If set to a folder, it will compare existing source file md5 signatures against those found in the folder's json data. When the signatures match, the file is skipped from being minified again, allowing you to better stay within your API request limits. When an image is minified, the md5 signature is determined from the unminified source image and wrtten to the folder at options.sigFolder (a suggested location would be somewhere under your source control).
+
+Signatures are based off the unminifed source image, so that when the source changes it will be re-minified and re-written to the destination file.
+
+>**Note:** Do not use both `sigFile` and `sigFolder`.  They both achieve the same goal.  sigFolder has slower performance in exchange for make it easier to avoid merge conflicts when multiple users are committing optimized images into source control. 
+
 #### options.sameDest
 Type: `Boolean`
 Default `false`
 
 If your source is the same as your destination (images are written over themselves), and you want to use the signature checking feature, set this to true
 
->**Note:** If your source and destination are the same, it's recommended you use this, and `options.sigFile`, as it prevents you from continually uploading already compressed images each time you run the task
+>**Note:** If your source and destination are the same, it's recommended you use this, and `options.sigFile` or `options.sigFolder`, as it prevents you from continually uploading already compressed images each time you run the task
 
 #### options.summarize/summarise
 Type: `Boolean`

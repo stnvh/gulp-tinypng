@@ -38,7 +38,7 @@ describe('tinypng', function() {
 	});
 
 	it('init hashing object', function() {
-		var struct = ['sigFile', 'sigs', 'calc', 'update', 'compare', 'populate', 'write'],
+		var struct = ['sigFile', 'sigFolder', 'sigs', 'calc', 'update', 'compare', 'mkdir', 'populate', 'walkDir', 'writeFile', 'writeFolder'],
 			inst = new TinyPNG(key);
 
 		expect(inst.hash).to.have.all.keys(struct);
@@ -126,7 +126,7 @@ describe('tinypng', function() {
 	});
 
 	describe('#hasher', function() {
-		var struct = ['sigFile', 'sigs', 'calc', 'update', 'compare', 'populate', 'write'],
+        var struct = ['sigFile', 'sigFolder', 'sigs', 'calc', 'update', 'compare', 'mkdir', 'populate', 'walkDir', 'writeFile', 'writeFolder'],
 			inst = new TinyPNG(key),
 			hash = new inst.hasher('test/location');
 
@@ -224,7 +224,7 @@ describe('tinypng', function() {
 			});
 		});
 
-		describe('#write', function() {
+		describe('#writeFile', function() {
 			afterEach(function() {
 				try {
 					fs.unlinkSync('.test');
@@ -236,7 +236,7 @@ describe('tinypng', function() {
 					hash = new inst.hasher('.test');
 
 				hash.update(file, 'test_hash');
-				hash.write();
+				hash.writeFile();
 
 				expect(fs.readFileSync('.test').toString()).to.equal(JSON.stringify(hash.sigs));
 			});
@@ -247,9 +247,50 @@ describe('tinypng', function() {
 
 				hash.update(file, 'test_hash');
 
-				expect(hash.write()).to.equal(hash);
+				expect(hash.writeFile()).to.equal(hash);
 			});
 		});
+
+        describe('#writeFolder', function() {
+			afterEach(function() {
+                var rmDir = function(dirPath) {
+                    try { var files = fs.readdirSync(dirPath); }
+                    catch(e) { return; }
+                    if (files.length > 0)
+                        for (var i = 0; i < files.length; i++) {
+                            var filePath = dirPath + '/' + files[i];
+                            if (fs.statSync(filePath).isFile())
+                                fs.unlinkSync(filePath);
+                            else
+                                rmDir(filePath);
+                        }
+                    fs.rmdirSync(dirPath);
+                };
+
+				try {
+					rmDir('.test_folder');
+				} catch(err) {}
+			});
+
+			it('writes signature file with correct data', function() {
+				var file = new TestFile(),
+					hash = new inst.hasher(null, '.test_folder');
+
+				hash.update(file, 'test_hash');
+				hash.writeFolder();
+
+				expect(fs.readFileSync('.test_folder/' + file.path + '.sig').toString()).to.equal(hash.sigs[file.path]);
+			});
+
+            it('fails silently on failed write of sig file', function() {
+                var file = new TestFile(),
+                    hash = new inst.hasher();
+
+                hash.update(file, 'test_hash');
+
+                expect(hash.writeFolder()).to.equal(hash);
+            });
+		})
 	});
 
 	describe('utils', function() {
@@ -322,7 +363,7 @@ describe('tinypng gulp', function() {
 
 		hash.calc(file, function(md5) {
 			hash.update(file, md5);
-			hash.write();
+			hash.writeFile();
 
 			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);
 
