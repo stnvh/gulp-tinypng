@@ -40,11 +40,15 @@
     "through2": "2.x",
     "through2-concurrent": "1.x",
     "minimatch": "3.x",
-    "vinyl": "2.x"
+    "vinyl": "2.x",
+    "plugin-error": "1.x",
+    "minimist": "1.x",
+    "fancy-log": "1.x",
+    "ansi-colors": "3.x"
   },
   "devDependencies": {
     "chai": "4.x",
-    "gulp": "3.x",
+    "gulp": "4.x",
     "mocha": "6.x"
   }
 }
