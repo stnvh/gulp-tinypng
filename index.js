@@ -52,6 +52,8 @@ function TinyPNG(opt, obj) {
 
         if(!opt.key) throw new PluginError(PLUGIN_NAME, 'Missing API key!');
 
+        if(opt.sigFile && !(typeof opt.sigFile === 'string')) opt.sigFile = '.sigFile';
+
         if(!opt.force) opt.force = argv.forceupload || false; // force match glob
         if(!opt.ignore) opt.ignore = argv.ignore || false; // ignore match glob
 
