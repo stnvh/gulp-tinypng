@@ -36,15 +36,15 @@
   },
   "license": "MIT",
   "dependencies": {
-    "gulp-util": "~3.0.0",
-    "request": "~2.55.0",
-    "through2": "^2.0.0",
-    "through2-concurrent": "^1.1.0",
-    "minimatch": "^2.0.0"
+    "request": "2.x",
+    "through2": "2.x",
+    "through2-concurrent": "1.x",
+    "minimatch": "3.x",
+    "vinyl": "2.x"
   },
   "devDependencies": {
-    "chai": "^2.0.0",
-    "gulp": "^3.0.0",
-    "mocha": "^2.0.0"
+    "chai": "4.x",
+    "gulp": "3.x",
+    "mocha": "6.x"
   }
 }
