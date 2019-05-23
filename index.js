@@ -90,7 +90,7 @@ function TinyPNG(opt, obj) {
                 var hash = null;
 
                 if(opt.sigFile && !self.utils.glob(file, opt.force)) {
-                    var result = self.hash.compare(file);
+                    var result = self.hash.compare(file.path, file.relative);
 
                     hash = result.hash;
 
@@ -122,10 +122,10 @@ function TinyPNG(opt, obj) {
 
                         if(opt.sameDest) {
                             curr.file = tinyFile;
-                            curr.hash = self.hash.calc(tinyFile);
+                            curr.hash = self.hash.calc(tinyFile.path);
                         }
 
-                        self.hash.update(curr.file, curr.hash);
+                        self.hash.update(curr.file.relative, curr.hash);
                     }
 
                     this.push(tinyFile);
@@ -244,24 +244,23 @@ function TinyPNG(opt, obj) {
             sigFile: sigFile || false,
             sigs: {},
 
-            calc: function(file, cb) {
-                var md5 = crypto.createHash('md5').update(file.contents).digest('hex');
+            calc: function(subject, cb) {
+                var md5 = crypto.createHash('md5').update(subject).digest('hex');
 
                 cb && cb(md5);
 
                 return cb ? this : md5;
             },
-            update: function(file, hash) {
+            update: function(key, hash) {
                 this.changed = true;
-                this.sigs[file.path.replace(file.cwd, '')] = hash;
+                this.sigs[key] = hash;
 
                 return this;
             },
-            compare: function(file, cb) {
+            compare: function(subject, key, cb) {
 
-                var md5 = this.calc(file),
-                    filepath = file.path.replace(file.cwd, ''),
-                    result = (filepath in this.sigs && md5 === this.sigs[filepath]);
+                var md5 = this.calc(subject),
+                    result = (key in this.sigs && md5 === this.sigs[key]);
 
                 cb && cb(result, md5);
 

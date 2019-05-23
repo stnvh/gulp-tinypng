@@ -1,5 +1,7 @@
 process.env.NODE_ENV = 'test';
 
+// TODO: test for sameDest !!
+
 var fs = require('fs'),
 	spawn = require('child_process').spawn,
 	crypto = require('crypto'),
@@ -130,7 +132,7 @@ describe('tinypng', function() {
 			it('returns md5 hash', function(done) {
 				var file = new TestFile();
 
-				hash.calc(file, function(md5) {
+				hash.calc(file.contents, function(md5) {
 					expect(md5).to.equal(crypto.createHash('md5').update(file.contents).digest('hex'));
 
 					done();
@@ -143,7 +145,7 @@ describe('tinypng', function() {
 				var file = new TestFile(),
 					hash = new inst.hasher();
 
-				hash.update(file, 'test_hash');
+				hash.update(file.relative, 'test_hash');
 
 				expect(hash.sigs).to.have.property(file.relative, 'test_hash');
 				expect(hash.changed).to.equal(true);
@@ -155,10 +157,10 @@ describe('tinypng', function() {
 				var file = new TestFile(),
 					hash = new inst.hasher();
 
-				hash.calc(file, function(md5) {
-					hash.update(file, md5);
+				hash.calc(file.contents, function(md5) {
+					hash.update(file.relative, md5);
 
-					hash.compare(file, function(result, sig) {
+					hash.compare(file.path, file.relative, function(result, sig) {
 						expect(result).to.equal(true);
 						expect(sig).to.equal(md5);
 
@@ -171,8 +173,8 @@ describe('tinypng', function() {
 				var file = new TestFile(),
 					hash = new inst.hasher();
 
-				hash.calc(file, function(md5) {
-					hash.compare(file, function(result, sig) {
+				hash.calc(file.contents, function(md5) {
+					hash.compare(file.path, file.relative, function(result, sig) {
 						expect(result).to.equal(false);
 						expect(sig).to.equal(md5);
 
@@ -222,7 +224,7 @@ describe('tinypng', function() {
 				var file = new TestFile(),
 					hash = new inst.hasher('.test');
 
-				hash.update(file, 'test_hash');
+				hash.update(file.relative, 'test_hash');
 				hash.write();
 
 				expect(fs.readFileSync('.test').toString()).to.equal(JSON.stringify(hash.sigs));
@@ -232,7 +234,7 @@ describe('tinypng', function() {
 				var file = new TestFile(),
 					hash = new inst.hasher();
 
-				hash.update(file, 'test_hash');
+				hash.update(file.relative, 'test_hash');
 
 				expect(hash.write()).to.equal(hash);
 			});
@@ -307,8 +309,8 @@ describe('tinypng gulp', function() {
 			hash = new inst.hasher('.sigs'),
 			file = new TestFile();
 
-		hash.calc(file, function(md5) {
-			hash.update(file, md5);
+		hash.calc(file.contents, function(md5) {
+			hash.update(file.relative, md5);
 			hash.write();
 
 			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--forceupload', '*ge.png']);
