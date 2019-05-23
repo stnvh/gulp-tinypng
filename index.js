@@ -135,12 +135,13 @@ function TinyPNG(opt, obj) {
             }
         })
         .on('error', function(err) {
+            if(opt.sigFile) self.hash.write(); // write sigs after error
             emitted = true; // surely a method in the stream to handle this?
             self.stats.skipped++;
             self.utils.log(err.message);
         })
         .on('end', function() {
-            if(!emitted && opt.sigFile) self.hash.write(); // write sigs after complete
+            if(opt.sigFile) self.hash.write(); // write sigs after complete
             if(opt.summarize) {
                 var stats = self.stats,
                     info = util.format('Skipped: %s image%s, Compressed: %s image%s, Savings: %s (ratio: %s)',
