@@ -90,7 +90,8 @@ function TinyPNG(opt, obj) {
                 var hash = null;
 
                 if(opt.sigFile && !self.utils.glob(file, opt.force)) {
-                    var result = self.hash.compare(file.path, file.relative);
+                    var subject = opt.sameDest ? file.path : file.contents;
+                        result = self.hash.compare(subject, file.relative);
 
                     hash = result.hash;
 
