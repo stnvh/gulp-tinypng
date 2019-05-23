@@ -116,7 +116,7 @@ Force compress images regardless of signature. Value can either be `true` to for
 
 Can also be performed from the **command line**:
 ```bash
-$ gulp png --force 'icon-*.png'
+$ gulp png --forceupload 'icon-*.png'
 ```
 
 This feature was added as it's impossible to know where the files are being written to at this point in the stream, unless the directory is directly passed into the config (pretty ugly). So the option was added to force certain (or all) files to be compressed when required.

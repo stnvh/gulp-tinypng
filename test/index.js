@@ -87,19 +87,6 @@ describe('tinypng', function() {
 			});
 		});
 
-		describe('#download', function() {
-			it('downloads and returns correct buffer', function(done) {
-				this.timeout(20000);
-
-				inst.request(new TestFile()).download('http://ovh.net/files/1Mb.dat', function(err, data) {
-					expect(err).to.not.be.instanceof(Error);
-					expect(data.toString()).to.equal(fs.readFileSync(cwd + '/assets/download.dat').toString());
-
-					done();
-				});
-			});
-		});
-
 		describe('#handler', function() {
 			it('returns correct unknown error', function() {
 				var request = new inst.request(new TestFile());
@@ -324,7 +311,7 @@ describe('tinypng gulp', function() {
 			hash.update(file, md5);
 			hash.write();
 
-			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);
+			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--forceupload', '*ge.png']);
 
 			sh.stdout.on('end', function() {
 				expect(fs.existsSync(target)).to.equal(true, 'compressed output file created');

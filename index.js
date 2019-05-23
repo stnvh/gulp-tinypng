@@ -51,7 +51,7 @@ function TinyPNG(opt, obj) {
 
         if(!opt.key) throw new PluginError(PLUGIN_NAME, 'Missing API key!');
 
-        if(!opt.force) opt.force = gutil.env.force || false; // force match glob
+        if(!opt.force) opt.force = gutil.env.forceupload || false; // force match glob
         if(!opt.ignore) opt.ignore = gutil.env.ignore || false; // ignore match glob
 
         if(opt.summarise) opt.summarize = true; // chin chin, old chap!
