@@ -160,7 +160,7 @@ describe('tinypng', function() {
 				hash.calc(file.contents, function(md5) {
 					hash.update(file.relative, md5);
 
-					hash.compare(file.path, file.relative, function(result, sig) {
+					hash.compare(file.contents, file.relative, function(result, sig) {
 						expect(result).to.equal(true);
 						expect(sig).to.equal(md5);
 
@@ -174,7 +174,7 @@ describe('tinypng', function() {
 					hash = new inst.hasher();
 
 				hash.calc(file.contents, function(md5) {
-					hash.compare(file.path, file.relative, function(result, sig) {
+					hash.compare(file.contents, file.relative, function(result, sig) {
 						expect(result).to.equal(false);
 						expect(sig).to.equal(md5);
 
