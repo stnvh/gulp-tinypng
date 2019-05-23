@@ -4,18 +4,18 @@ var fs = require('fs'),
 	spawn = require('child_process').spawn,
 	crypto = require('crypto'),
 	expect = require('chai').expect,
-    gutil = require('gulp-util'),
+	Vinyl = require('vinyl'),
 
 	dry = process.env.PNG_DRY ? true : false,
 
     TinyPNG = require('../index');
 
-var key = 'rlDAQuwa4AOtQPaekNpu-HgLOedHXOlh',
+var key = 'GGyHoR4JUDoyvdV0cNSc2dvgNdquEimE',
 	cwd = __dirname,
 	TestFile = function(small) {
 		var file = cwd + '/assets/image' + (small ? '_small' : '') + '.png';
 
-		return new gutil.File({
+		return new Vinyl({
 			path: 'image.png',
 			contents: fs.readFileSync(file)
 		});
@@ -217,7 +217,7 @@ describe('tinypng', function() {
 			});
 
 			it('doesn\'t error on failed JSON parse', function() {
-				var hash = new inst.hasher('/etc/hosts');
+				var hash = new inst.hasher('test/example');
 
 				expect(hash.populate).to.not.throw(Error);
 				expect(hash.populate()).to.not.be.instanceof(Error);

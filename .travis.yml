@@ -1,11 +1,6 @@
 language: node_js
+sudo: false
 node_js:
-  - "5"
-  - "5.1"
-  - "4.2"
-  - "4.1"
-  - "4.0"
-  - "0.12"
-  - "0.11"
-  - "0.10"
-  - "iojs"
+  - iojs
+  - node
+  - lts/*
