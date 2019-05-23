@@ -1,17 +1,18 @@
 var test = process.env.NODE_ENV == 'test',
     through = require('through2'),
     throughParallel = require('through2-concurrent'),
-    gutil = require('gulp-util'),
-    chalk = gutil.colors,
+    chalk = require('ansi-colors'),
     request = require('request'),
     path = require('path'),
     util = require('util'),
     fs = require('fs'),
     crypto = require('crypto'),
-    minimatch = require('minimatch');
+    minimatch = require('minimatch'),
+    glog = require('fancy-log'),
+    argv = require('minimist')(process.argv.slice(2));
 
 var PLUGIN_NAME = 'gulp-tinypng-compress',
-    PluginError = gutil.PluginError;
+    PluginError = require('plugin-error');
 
 /**
  * TinyPNG class
@@ -51,8 +52,10 @@ function TinyPNG(opt, obj) {
 
         if(!opt.key) throw new PluginError(PLUGIN_NAME, 'Missing API key!');
 
-        if(!opt.force) opt.force = gutil.env.force || false; // force match glob
-        if(!opt.ignore) opt.ignore = gutil.env.ignore || false; // ignore match glob
+        if(!opt.force) opt.force = argv.forceupload || false; // force match glob
+        if(!opt.ignore) opt.ignore = argv.ignore || false; // ignore match glob
+
+        if(opt.summarise) opt.summarize = true; // chin chin, old chap!
 
         if(opt.summarise) opt.summarize = true; // chin chin, old chap!
 
@@ -293,7 +296,7 @@ function TinyPNG(opt, obj) {
 
     this.utils = {
         log: function(message, force) {
-            if(self.conf.options.log || force) gutil.log(PLUGIN_NAME, message);
+            if(self.conf.options.log || force) glog(PLUGIN_NAME, message);
 
             return this;
         },

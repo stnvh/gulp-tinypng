@@ -8,7 +8,7 @@ var gulp = require('gulp'),
 gulp.task('tinypng', function() {
     gulp.src(cwd + '/test/assets/image.png')
         .pipe(tinypng({
-            key: process.env.TINYPNG_KEY || 'rlDAQuwa4AOtQPaekNpu-HgLOedHXOlh',
+            key: process.env.TINYPNG_KEY || 'GGyHoR4JUDoyvdV0cNSc2dvgNdquEimE',
             log: true,
             sigFile: (sigs ? '.sigs' : false)
         }).on('error', function(err) {

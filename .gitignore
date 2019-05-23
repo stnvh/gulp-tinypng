@@ -1,3 +1,4 @@
 .DS_Store
+.sigs
 node_modules/
 test/assets/tmp

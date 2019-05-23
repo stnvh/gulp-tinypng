@@ -4,18 +4,18 @@ var fs = require('fs'),
 	spawn = require('child_process').spawn,
 	crypto = require('crypto'),
 	expect = require('chai').expect,
-    gutil = require('gulp-util'),
+	Vinyl = require('vinyl'),
 
 	dry = process.env.PNG_DRY ? true : false,
 
     TinyPNG = require('../index');
 
-var key = 'rlDAQuwa4AOtQPaekNpu-HgLOedHXOlh',
+var key = 'GGyHoR4JUDoyvdV0cNSc2dvgNdquEimE',
 	cwd = __dirname,
 	TestFile = function(small) {
 		var file = cwd + '/assets/image' + (small ? '_small' : '') + '.png';
 
-		return new gutil.File({
+		return new Vinyl({
 			path: 'image.png',
 			contents: fs.readFileSync(file)
 		});
@@ -81,19 +81,6 @@ describe('tinypng', function() {
 				inst.request(image).upload(function(err, data) {
 					expect(err).to.not.be.instanceof(Error);
 					expect(data).to.have.all.keys(['url', 'count']);
-
-					done();
-				});
-			});
-		});
-
-		describe('#download', function() {
-			it('downloads and returns correct buffer', function(done) {
-				this.timeout(20000);
-
-				inst.request(new TestFile()).download('http://ovh.net/files/1Mb.dat', function(err, data) {
-					expect(err).to.not.be.instanceof(Error);
-					expect(data.toString()).to.equal(fs.readFileSync(cwd + '/assets/download.dat').toString());
 
 					done();
 				});
@@ -217,7 +204,7 @@ describe('tinypng', function() {
 			});
 
 			it('doesn\'t error on failed JSON parse', function() {
-				var hash = new inst.hasher('/etc/hosts');
+				var hash = new inst.hasher('test/example');
 
 				expect(hash.populate).to.not.throw(Error);
 				expect(hash.populate()).to.not.be.instanceof(Error);
@@ -324,7 +311,7 @@ describe('tinypng gulp', function() {
 			hash.update(file, md5);
 			hash.write();
 
-			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--force', '*ge.png']);
+			var sh = spawn('node', ['node_modules/gulp/bin/gulp.js', 'tinypng', '--forceupload', '*ge.png']);
 
 			sh.stdout.on('end', function() {
 				expect(fs.existsSync(target)).to.equal(true, 'compressed output file created');
