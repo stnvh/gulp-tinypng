@@ -14,7 +14,7 @@ An actively maintained & developed fork of [gulp-tinypng](https://github.com/cre
 - Maintained with the intention of standardising the tinypng featureset across gulp & grunt (and others too!)
 
 ## Install
-*Requires node `0.10.x` or above*
+*Requires node `6` or above*
 
 Install with [npm](https://npmjs.org/package/gulp-tinypng-compress) - In your project folder, run:
 
